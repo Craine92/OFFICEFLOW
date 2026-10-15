@@ -1,16 +1,16 @@
-# OFFICEFLOW 0.2
+# OFFICEFLOW 0.3
 
 **Ihr Büro. Besser organisiert.** Eine vollständig deutschsprachige, statische Demo für visuelle Büro-, Arbeitsplatz- und Raumplanung.
 
 **[Öffentliche Demo](https://craine92.github.io/OFFICEFLOW/)** · [Raumeditor öffnen](https://craine92.github.io/OFFICEFLOW/#/editor)
 
-Neu in 0.2: eigene Bild- und PDF-Grundrisse, ein Import-Assistent, IndexedDB-Dateispeicherung, Undo/Redo, dynamische Planabmessungen, Objektüberschneidungen und zeitgenaue Verfügbarkeit.
+Neu in 0.3: ein durchgängiges Enterprise-Design, ein vollständiger Vektoreditor mit Wänden und Wandöffnungen, Gebäudebauteilen, detailliertem Möbelkatalog, Gruppen, Ebenen und Maßstab sowie drei neue Präsentationsetagen. Bild-/PDF-Import, IndexedDB und sämtliche Buchungsfunktionen bleiben erhalten.
 
 ![OFFICEFLOW Dashboard](docs/screenshots/desktop.png)
 
 ## Lokal starten
 
-Voraussetzung: Node.js 22 mit npm. Ein Backend, Microsoft-Konto oder Zugangsdaten sind nicht erforderlich.
+Voraussetzung: Node.js ab 22.12 mit npm. Ein Backend, Microsoft-Konto oder Zugangsdaten sind nicht erforderlich.
 
 ```powershell
 npm ci
@@ -21,7 +21,8 @@ Die ausgegebene Adresse öffnen, standardmäßig **http://127.0.0.1:5173**.
 
 ```powershell
 npm test                  # Buchungsregeln, Speicherung, Transaktionen und Geometrie
-npm run test:e2e          # Automatisierte Browserprüfungen
+npm run test:e2e          # Browserprüfungen einschließlich visueller Vergleiche
+npm run test:visual       # Nur die drei visuellen Regressionstests
 npm run build             # TypeScript-Prüfung und statischer Produktions-Build
 npm run preview           # Produktions-Build lokal ansehen
 npm run verify:production # Statischen Build unter /officeflow/ prüfen; erzeugt Bildschirmfotos
@@ -57,13 +58,34 @@ Zum Ausprobieren liegen ein selbst erstellter [PNG-Grundriss](tests/fixtures/bue
 
 ![Raumeditor mit eigenem Grundriss](docs/screenshots/raumeditor.png)
 
-Der Editor bietet ein sichtbares 25er-Raster und optionales **Einrasten in 5er-Schritten**, Zoom, Verschieben und Großansicht. **Rückgängig/Wiederholen** speichert bis zu 80 Entwurfsschritte pro geöffnetem Bürobereich. Tastatur: `Strg/Cmd+Z`, `Strg/Cmd+Umschalt+Z` oder `Strg/Cmd+Y`; in Textfeldern bleibt das native Text-Undo aktiv.
+Der Editor bietet ein sichtbares 25er-Raster und optionales **intelligentes Einrasten an Wandenden, Objektkanten und Mittelpunkten** mit 5er-Grundraster, Cursorzoom, Verschieben und Großansicht. **Rückgängig/Wiederholen** speichert bis zu 80 Entwurfsschritte pro geöffnetem Bürobereich. Tastatur: `Strg/Cmd+Z`, `Strg/Cmd+Umschalt+Z` oder `Strg/Cmd+Y`; in Textfeldern bleibt das native Text-Undo aktiv.
 
-Objektpositionen sind in **Planeinheiten** gespeichert und unabhängig von Bildschirmgröße oder Zoom. Planbreite und -höhe können zwischen 160 und 6000 Einheiten liegen. Beim bewussten Ändern der Planabmessungen skalieren die Positionen proportional; Möbel behalten ihre Größe in Planeinheiten. Die Hintergrundproportionen bleiben erhalten. Objekte können außerdem einzeln skaliert werden.
+Objektpositionen sind in **Planeinheiten** gespeichert und unabhängig von Bildschirmgröße oder Zoom. Planbreite und -höhe können zwischen 160 und 6000 Einheiten liegen. Beim bewussten Ändern der Planabmessungen skalieren die Positionen proportional; Möbel behalten ihre Größe in Planeinheiten. Wände, Zonen, Bauteile und Annotationen folgen der Änderung ebenfalls; eine bestehende Maßstabskalibrierung wird dabei entfernt. Die Hintergrundproportionen bleiben erhalten. Objekte können außerdem einzeln skaliert werden.
 
 Objektüberschneidungen werden auch bei gedrehten Rechtecken erkannt und im Plan rot markiert. Die Speicherung einer überlappenden Anordnung benötigt eine ausdrückliche Bestätigung. Automatische Nummern berücksichtigen vorhandene Arbeitsplätze; neue oder geänderte Bezeichnungen müssen eindeutig sein. Die technischen UUIDs bleiben beim Umbenennen und Hintergrundwechsel stabil.
 
 Importdateien werden erst beim bestätigten Import gespeichert. Ein abgeschlossener Import beginnt einen neuen gespeicherten Editorstand. Änderungen danach werden durch **Grundriss speichern** oder **Verwerfen** abgeschlossen; der Status ist jederzeit sichtbar.
+
+## Eine Büroetage entwerfen
+
+![Professioneller Etageneditor](docs/screenshots/raumeditor.png)
+
+1. Im **Raumeditor** einen bestehenden Plan wählen, einen Hintergrund importieren oder über **Leerer Plan** eine Etage anlegen. Die linke Werkzeugleiste, die zentrale Arbeitsfläche und der rechte Inspector bilden den Arbeitsbereich.
+2. Mit **Wand zeichnen** Start- und Endpunkt anklicken. Wände verlaufen zunächst rechtwinklig; ihre Enden rasten aneinander ein. Im Inspector Stärke, Material (Massiv-/Glaswand), Koordinaten oder Winkel ändern. Gemeinsame Wandendpunkte lassen sich mit Griffen bearbeiten.
+3. **Tür**, **Doppeltür**, **Schiebetür** oder **Fenster** wählen und auf eine Wand klicken. Öffnungen sind der Wand zugeordnet und werden tatsächlich aus ihr ausgespart. Anschlag, Öffnungsrichtung und Position stehen im Inspector.
+4. **Raumzone zeichnen** erstellt mit zwei gegenüberliegenden Ecken eine Fläche. Büro, Flur, Lounge, Küche, WC, Technik oder Lager sind bauliche Zonen. Einen **buchbaren Meetingraum** separat aus dem Katalog hinzufügen und bei Bedarf einer Zone zuordnen.
+5. Im **Möbelkatalog** suchen oder Kategorien filtern: Aufzug, Treppe, Eingang, Stützen, Büroausstattung, Konferenz-/Gemeinschaftsmöbel, Küche, Sanitär und Pflanzen. Sterne merken Favoriten lokal. Zweier-, Vierer- und Sechsergruppen enthalten jeweils einzeln buchbare Arbeitsplätze mit eigener Nummer und UUID.
+6. Elemente per Maus, Auswahlrahmen, Umschalttaste oder Auswahlliste auswählen. Größen und freie Winkel ändern, mit Griffen skalieren, in 15°-Schritten drehen, gruppieren, duplizieren, ausrichten oder gleichmäßig verteilen. Das Kontextmenü bietet Kopieren, Duplizieren, Vordergrund und Löschen.
+7. Unter **Ebenen** Hintergrund, Architektur, Gebäudeeinrichtung, Ressourcen und Annotationen unabhängig einblenden oder sperren. Gesperrte Elemente sind nicht auswählbar. Die Benutzeransicht besitzt keine Bearbeitungsgriffe.
+8. Mit **Maßstab kalibrieren** zwei Endpunkte einer bekannten Strecke anklicken und deren Länge eingeben. Erst danach erscheinen reale Meter. Das Maßband erstellt bleibende Maßlinien. Ohne Kalibrierung bleiben alle Angaben in Planeinheiten.
+9. **Plan** zeigt Hintergrundeinstellungen und Geometriehinweise. Fehler außerhalb der Planfläche verhindern das Speichern; Überschneidungen können nach Bestätigung bewusst übernommen werden. Eine Raumzone darf Möbel enthalten. **Grundriss speichern**, **Verwerfen** und der sichtbare Änderungsstatus schließen die Bearbeitung ab.
+10. Über **Präsentieren** in der Raumplanung die Ansicht ohne Navigation und Editorwerkzeuge öffnen. Etage, Datum und Zeitfenster bleiben wählbar; ein Klick auf eine Ressource zeigt Ausstattung, Mitarbeiter und Buchungszeiten. Direkter Einstieg: [Präsentationsmodus](https://craine92.github.io/OFFICEFLOW/#/praesentation).
+
+Tastatur: **Leertaste** schwenkt den Plan, **Pfeile** bewegen die Auswahl (mit Umschalt schneller), **Strg/Cmd+C/V** kopiert/fügt ein, **Strg/Cmd+D** dupliziert, **Entf** löscht, **Strg/Cmd+S** speichert. **Escape** beendet einen Zeichenbeginn. Kopieren/Einfügen gilt innerhalb der aktiven Anwendung, auch zwischen Bürobereichen.
+
+Die neuen Präsentationspläne erscheinen bei frischen Browserdaten. Vorhandene Entwürfe und Buchungen werden durch das Update erhalten. Wer die neuen Pläne bewusst laden möchte, kann unter Einstellungen die Demo zurücksetzen; dieser Vorgang löscht eigene Daten und importierte Dateien.
+
+![Hybrid Office](docs/screenshots/hybrid-office.png)
 
 ## Auf GitHub Pages veröffentlichen
 
@@ -110,9 +132,11 @@ src/
   data/             Datenanbieter, Migration, IndexedDB, Datei-/PDF-Verarbeitung
   hooks/            Entwurfshistorie und lokales Laden von Hintergrundbildern
   store/            Zustand-Store und serialisierte Schreibtransaktionen
+  styles/           Zentrale Design-Tokens und Enterprise-Oberfläche
   lib/              Gemeinsame UI-Hilfsfunktionen
 tests/e2e/          Durchgängige Browserprüfungen
 tests/fixtures/     Eigene Bild- und mehrseitige PDF-Beispieldateien
+tests/visual/       Eingecheckte Referenzbilder für automatische Bildvergleiche
 scripts/            Lokale PDF-Ressourcen und statische Produktionsprüfung
 docs/               Entwicklungsstand, Architekturhinweise und Bildschirmfotos
 ```
@@ -121,7 +145,7 @@ Technik: React 19, TypeScript, Vite, Tailwind CSS 4, shadcn/ui-Muster und Radix 
 
 ### Datenzugriff und spätere Microsoft-Anbindung
 
-`WorkspaceDataProvider` definiert `load`, `save` und `reset`. `DemoDataProvider` implementiert den Metadatenzugriff auf localStorage unter dem absichtlich beibehaltenen Schlüssel `officeflow.demo.v1`. Das darin gespeicherte Schema hat jetzt **Version 2**. Über `configureDataProvider()` lässt sich vor der Initialisierung ein anderer Anbieter einsetzen. Geschäftsregeln liegen unabhängig von der Darstellung in `domain/`. Hintergrunddateien werden separat über `data/assets.ts` verwaltet.
+`WorkspaceDataProvider` definiert `load`, `save` und `reset`. `DemoDataProvider` implementiert den Metadatenzugriff auf localStorage unter dem absichtlich beibehaltenen Schlüssel `officeflow.demo.v1`. Das darin gespeicherte Schema hat jetzt **Version 3**. Über `configureDataProvider()` lässt sich vor der Initialisierung ein anderer Anbieter einsetzen. Geschäftsregeln liegen unabhängig von der Darstellung in `domain/`. Hintergrunddateien werden separat über `data/assets.ts` verwaltet.
 
 `MicrosoftGraphGateway` beschreibt den Entwurf für einen späteren Adapter: Räume, Mitarbeiter, Buchungen, Stornierung und Grundrissänderungen; ETags sind für konkurrierende Änderungen vorgesehen. Der Store serialisiert lokale Änderungen und zeigt sie erst nach erfolgreichem Speichern als erfolgreich an. Speicherausfälle werden gemeldet; beschädigte Daten werden nicht still überschrieben.
 
@@ -129,7 +153,7 @@ Technik: React 19, TypeScript, Vite, Tailwind CSS 4, shadcn/ui-Muster und Radix 
 
 ## Speicherung und Grenzen
 
-- **Migration:** Gültige Version-1-Daten werden beim Laden automatisch auf Schema 2 migriert. Die Originaldaten werden vorher unverändert unter `officeflow.demo.backup.v1` gesichert. Buchungen, Mitarbeiter, Objektkennungen und Positionen bleiben erhalten. Ein Speicherfehler bricht die Migration ab; alte Daten werden nicht still ersetzt. Es ist kein Demo-Reset für das Update erforderlich.
+- **Migration:** Gültige Version-1- und Version-2-Daten werden beim Laden auf Schema 3 migriert. Die Originaldaten werden vorher unverändert unter `officeflow.demo.backup.v1` beziehungsweise `officeflow.demo.backup.v2` gesichert. Bestehende Pflanzen und Loungeobjekte werden mit identischer Kennung als Ausstattung übernommen. Neue Präsentationslayouts ersetzen keine vorhandenen Entwürfe. Buchungen, Mitarbeiter, Objektkennungen und Positionen bleiben erhalten. Ein Speicherfehler bricht die Migration ab; alte Daten werden nicht still ersetzt. Es ist kein Demo-Reset für das Update erforderlich.
 - **IndexedDB:** Datenbank `officeflow-plans`, Version 1, Store `assets`. Jeder Hintergrund hat eine unveränderliche Kennung und enthält die Originaldatei sowie ein PNG der ausgewählten Seite. Vorschauen werden auf maximal 2400 Pixel an der langen Seite begrenzt; die Originaldatei bleibt erhalten. Metadaten verweisen nur auf die Datei-ID und die Transformation.
 - **Konsistenz:** Erst wird die Datei in IndexedDB gespeichert, dann der Raum im Datenanbieter. Bei einem Fehler im zweiten Schritt wird das neue Asset wieder entfernt. Eine fehlende Hintergrunddatei wird als Ladefehler angezeigt und löscht keine Objekte oder Buchungen. Demo-Reset leert auch IndexedDB und entfernt die Migrationssicherung.
 - Demo-Daten sind pro Browser und Origin gespeichert. Ein Neuladen erhält Buchungen und Grundrissänderungen. Der Hell-/Dunkelmodus wird separat gespeichert.
@@ -137,13 +161,15 @@ Technik: React 19, TypeScript, Vite, Tailwind CSS 4, shadcn/ui-Muster und Radix 
 - Keine geräteübergreifende oder tabübergreifende Synchronisierung. Parallele Browser-Tabs können den lokalen Stand überschreiben. Die lokale Konfliktprüfung gilt für die aktive App-Instanz.
 - Keine Authentifizierung, echte Administratorrechte oder Zugriffskontrolle: Alle Besucher dürfen in ihrem eigenen Demo-Browser bearbeiten.
 - Keine wiederkehrenden oder mehrtägigen Buchungen. Zeitfenster liegen zwischen 07:00 und 22:00 Uhr eines Tages.
-- Außenwände der drei Demo-Pläne sind Dekoration. Eigene Grundrisse ersetzen sie durch den importierten Hintergrund. Keine automatische Wand- oder Raumerkennung, keine Kalibrierung auf echte Meter und keine bauliche oder Fluchtwegprüfung. Kollisionen beziehen sich auf die geometrischen Objektrechtecke.
+- Wände, Öffnungen, Zonen, Einrichtung und Ressourcen sind editierbare Vektoren. Keine automatische Erkennung aus Bilddateien und keine bauliche oder Fluchtwegprüfung. Kollisionen verwenden geometrische Rechtecke. Das WC-Symbol stellt keine Zertifizierung der Barrierefreiheit dar. Maße werden erst nach manueller Kalibrierung als Meter angezeigt.
 - Der JSON-Export enthält Buchungen und Plan-Metadaten, **keine Hintergrunddateien**. Ein vollständiger Datei-/Datenexport mit Wiederimport ist noch nicht enthalten. Originaldateien zusätzlich aufbewahren.
 - Browserdaten können durch Löschen der Websitedaten, privaten Modus oder Speicherbereinigung des Browsers verloren gehen. Die App meldet Speicherfehler; sie ersetzt kein zentrales Backup.
 
 ## Prüfstand
 
-Version 0.2 enthält **30 fachliche Tests** und **25 Playwright-Browserprüfungen**, einschließlich aller bisherigen Abläufe, Datei- und PDF-Import, Seitenauswahl, Migration, Fehlerfälle, IndexedDB, Undo/Redo, Skalierung, Überschneidungen, Buchungen auf eigenen Plänen und zeitgenaue Verfügbarkeit. Geprüfte Breiten: 390, 768, 1024 und 1440 Pixel.
+Die Referenzbilder unter `tests/visual/` werden mit festem Datum und lokal gebündelter Schrift geprüft. Nach einer beabsichtigten UI-Änderung `npm run test:visual -- --update-snapshots` ausführen, die Bilder prüfen und gemeinsam mit dem Code einchecken. Datums-/Zeitfelder sind im Bildvergleich maskiert; deren Funktion wird separat getestet. Screenshots aller Hauptansichten finden sich unter `docs/screenshots/`. Eigene Vektorsymbole benötigen keine Fremdassets; die Lizenz der mitgelieferten Inter-Schrift liegt in `public/licenses/Inter-OFL.txt`.
+
+Version 0.3 enthält **47 fachliche Tests** und **33 Playwright-Browserprüfungen**, einschließlich aller bisherigen Abläufe, Datei- und PDF-Import, Migration, IndexedDB, Architekturwerkzeuge, Gruppen, Ebenen, Undo/Redo, Skalierung, Buchungen auf eigenen Plänen, zeitgenauer Verfügbarkeit und drei automatischer Bildvergleiche. Geprüfte Breiten: 390, 768, 1024 und 1440 Pixel.
 
 `verify:production` liefert ausschließlich den echten Build unter einem Repository-Unterpfad aus und prüft direkte Navigation, Neuladen, PDF-Worker, lokale PDF-Ressourcen, Seite 2 einer PDF, Bildimport, Buchung auf eigenem Plan und Persistenz. Dabei werden die dokumentierten Bildschirmfotos erzeugt.
 

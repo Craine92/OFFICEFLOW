@@ -21,7 +21,7 @@ describe('Demo-Datenanbieter und Zustand', () => {
     local.setItem(STORAGE_KEY, raw);
     const provider = new DemoDataProvider(local),
       data = await provider.load();
-    expect(data.version).toBe(2);
+    expect(data.version).toBe(3);
     expect(data.bookings).toEqual(original.bookings);
     expect(data.rooms[0].objects).toEqual(original.rooms[0].objects);
     expect(local.getItem(MIGRATION_BACKUP_KEY)).toBe(raw);

@@ -2,48 +2,31 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Armchair,
-  ArrowDownRight,
   ArrowRight,
   ArrowUpRight,
-  Building2,
-  CalendarCheck2,
   CalendarDays,
-  Check,
   ChevronRight,
-  Clock3,
   Layers3,
   Monitor,
   Plus,
   Users,
+  Presentation,
 } from 'lucide-react';
 import { useOfficeStore } from '../store/useOfficeStore';
-import { statusFor, statusLabels, today, overlaps } from '../domain/booking';
+import { statusFor, statusLabels } from '../domain/booking';
 import type { BookingTarget } from './BookingDialog';
 import type { WorkspaceStatus } from '../domain/types';
 import { FloorPlan } from './FloorPlan';
 import { Button } from './ui/button';
-import { BookingTable, Avatar } from './BookingTable';
+import { Avatar } from './BookingTable';
+import { planArea } from '../domain/design';
 
-export function WorkspaceView({
-  full = false,
-  onBook,
-  notify,
-}: {
-  full?: boolean;
-  onBook: (target: BookingTarget) => void;
-  notify: (message: string) => void;
-}) {
+export function WorkspaceView({ onBook }: { onBook: (target: BookingTarget) => void }) {
   const { data, date, roomId, setRoom, timeStart, timeEnd } = useOfficeStore();
   const [filter, setFilter] = useState<WorkspaceStatus | 'all'>('all');
   const [selected, setSelected] = useState<string>();
   if (!data) return null;
   const room = data.rooms.find((r) => r.id === roomId) ?? data.rooms[0];
-  const desks = data.rooms.flatMap((r) => r.objects.filter((o) => o.kind === 'desk'));
-  const counts = (status: WorkspaceStatus) =>
-    desks.filter((o) => statusFor(data.bookings, o.id, date, timeStart, timeEnd) === status).length;
-  const available = counts('available'),
-    occupied = counts('occupied'),
-    reserved = counts('reserved');
   const roomDesks = room.objects.filter((o) => o.kind === 'desk');
   const availableDesks = roomDesks.filter(
     (o) => statusFor(data.bookings, o.id, date, timeStart, timeEnd) === 'available',
@@ -51,93 +34,28 @@ export function WorkspaceView({
   const meetings = data.rooms.flatMap((r) =>
     r.objects.filter((o) => o.kind === 'meeting').map((o) => ({ ...o, roomId: r.id })),
   );
-  const bookingDay = data.bookings
-    .filter((b) => b.date === date && overlaps(b, { start: timeStart, end: timeEnd }))
-    .sort((a, b) => a.start.localeCompare(b.start));
   const selectedObject = room.objects.find((o) => o.id === selected);
   const displayObjects =
     selectedObject && ['desk', 'meeting'].includes(selectedObject.kind)
       ? [selectedObject]
-      : availableDesks.slice(0, full ? 5 : 3);
+      : availableDesks.slice(0, 5);
   return (
     <>
-      {!full && (
-        <div className="kpi-grid">
-          <article className="kpi">
-            <div className="kpi-top">
-              <span>Arbeitsplätze gesamt</span>
-              <span className="kpi-icon">
-                <Armchair size={19} />
-              </span>
-            </div>
-            <div className="kpi-value">
-              {desks.length}
-              <span>in {data.rooms.length} Bürobereichen</span>
-            </div>
-            <div className="kpi-foot">
-              <Building2 size={13} />
-              Berlin Mitte · 2. Obergeschoss
-            </div>
-          </article>
-          <article className="kpi">
-            <div className="kpi-top">
-              <span>Verfügbare Plätze</span>
-              <span className="kpi-icon green">
-                <Check size={19} />
-              </span>
-            </div>
-            <div className="kpi-value">
-              {available}
-              <span className="green-text">Platz für Ihre Ideen</span>
-            </div>
-            <div className="kpi-foot">
-              <span className="mini-dot available" />
-              {Math.round((available / Math.max(1, desks.length)) * 100)} % der Arbeitsplätze verfügbar
-            </div>
-          </article>
-          <article className="kpi">
-            <div className="kpi-top">
-              <span>Reservierte Plätze</span>
-              <span className="kpi-icon amber">
-                <CalendarCheck2 size={19} />
-              </span>
-            </div>
-            <div className="kpi-value">
-              {reserved}
-              <span>erwartete Ankünfte</span>
-            </div>
-            <div className="kpi-foot">
-              <Clock3 size={13} />
-              {date === today() ? 'Für heute vorgemerkt' : 'Für das gewählte Datum'}
-            </div>
-          </article>
-          <article className="kpi">
-            <div className="kpi-top">
-              <span>Belegte Plätze</span>
-              <span className="kpi-icon blue">
-                <Users size={19} />
-              </span>
-            </div>
-            <div className="kpi-value">
-              {occupied}
-              <span>Mitarbeiter vor Ort</span>
-            </div>
-            <div className="kpi-foot">
-              <span className="mini-dot occupied" />
-              {Math.round((occupied / Math.max(1, desks.length)) * 100)} % aktuelle Anwesenheit
-            </div>
-          </article>
-        </div>
-      )}
-      <div className={`workspace-grid ${full ? 'workspace-grid-full' : ''}`}>
+      <div className="workspace-grid workspace-grid-full">
         <section className="panel plan-panel">
           <div className="panel-heading">
             <div>
               <div className="eyebrow">
                 <Layers3 size={13} /> IHR BÜRO IM ÜBERBLICK
               </div>
-              <h2>{full ? 'Raum für Ihren Arbeitstag' : 'Finden Sie Ihren Lieblingsplatz'}</h2>
+              <h2>Raum für Ihren Arbeitstag</h2>
             </div>
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/praesentation">
+                <Presentation size={16} />
+                Präsentieren
+              </Link>
+            </Button>
             <span className="live-indicator">
               <i />
               {room.background ? 'Eigener Grundriss' : 'Demo-Grundriss'}
@@ -200,8 +118,7 @@ export function WorkspaceView({
               </span>
             </div>
             <span>
-              {roomDesks.length} Arbeitsplätze <span className="legend-separator">·</span>{' '}
-              {room.area > 0 ? `${room.area} m²` : 'Eigener Grundriss'}
+              {roomDesks.length} Arbeitsplätze <span className="legend-separator">·</span> {planArea(room)}
             </span>
           </div>
         </section>
@@ -231,7 +148,9 @@ export function WorkspaceView({
                     </strong>
                     <span>
                       <Monitor size={11} />
-                      {o.kind === 'meeting' ? `${o.capacity} Personen` : 'Monitor · Dockingstation'}
+                      {o.kind === 'meeting'
+                        ? `${o.capacity} Personen`
+                        : o.equipment?.slice(0, 2).join(' · ') || 'Individuell eingerichtet'}
                     </span>
                   </span>
                   <ChevronRight size={17} />
@@ -247,10 +166,13 @@ export function WorkspaceView({
               variant="outline"
               className="w-full"
               onClick={() =>
-                onBook({ roomId: room.id, objectId: availableDesks[0]?.id ?? roomDesks[0]?.id ?? '' })
+                onBook({
+                  roomId: room.id,
+                  objectId: selectedObject?.id ?? availableDesks[0]?.id ?? roomDesks[0]?.id ?? '',
+                })
               }
             >
-              Arbeitsplatz buchen
+              {selectedObject ? 'Auswahl buchen' : 'Arbeitsplatz buchen'}
               <ArrowRight size={14} />
             </Button>
           </section>
@@ -315,88 +237,27 @@ export function WorkspaceView({
           </section>
         </aside>
       </div>
-      {!full && (
-        <div className="dashboard-bottom">
-          <section className="panel bookings-panel">
-            <div className="panel-heading">
-              <div>
-                <h2>
-                  {date === today() ? 'Heutige Buchungen' : 'Buchungen am gewählten Tag'}
-                  <span className="heading-count">{bookingDay.length}</span>
-                </h2>
-                <p className="muted">Ein guter Arbeitstag beginnt mit einem festen Platz.</p>
-              </div>
-              <Button variant="ghost" size="sm" asChild>
-                <Link to="/buchungen">
-                  Alle ansehen
-                  <ArrowRight size={14} />
-                </Link>
-              </Button>
-            </div>
-            <BookingTable bookings={bookingDay.slice(0, 4)} compact notify={notify} />
-          </section>
-          <section className="panel occupancy-panel">
-            <div className="aside-heading">
-              <h3>Belegung im Überblick</h3>
-              <ArrowDownRight size={17} className="muted" />
-            </div>
-            <p className="muted">
-              Arbeitsplätze von {timeStart} bis {timeEnd} Uhr
-            </p>
-            <div className="occupancy-main">
-              <div
-                className="donut"
-                style={{
-                  background: `conic-gradient(#548e7a 0deg ${(available / Math.max(1, desks.length)) * 360}deg, #e3b965 ${(available / Math.max(1, desks.length)) * 360}deg ${((available + reserved) / Math.max(1, desks.length)) * 360}deg, #899bbc ${((available + reserved) / Math.max(1, desks.length)) * 360}deg 360deg)`,
-                }}
-              >
-                <div>
-                  <strong>
-                    {Math.round(((reserved + occupied) / Math.max(1, desks.length)) * 100)}
-                    <small>%</small>
-                  </strong>
-                  <span>gebucht</span>
-                </div>
-              </div>
-              <div className="occupancy-key">
-                {(['available', 'reserved', 'occupied'] as const).map((s) => (
-                  <div key={s}>
-                    <i className={`mini-dot ${s}`} />
-                    <span>{statusLabels[s]}</span>
-                    <strong>{counts(s)}</strong>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div className="occupancy-note">
-              <Check size={14} />
-              <span>Noch {available} Möglichkeiten für gute Arbeit.</span>
-            </div>
-          </section>
+
+      <section className="panel room-summary">
+        <div>
+          <h3>{room.name}</h3>
+          <p className="muted">{room.subtitle}</p>
         </div>
-      )}
-      {full && (
-        <section className="panel room-summary">
-          <div>
-            <h3>{room.name}</h3>
-            <p className="muted">{room.subtitle}</p>
-          </div>
-          <span>
-            <Armchair size={18} />
-            {roomDesks.length} Arbeitsplätze
-          </span>
-          <span>
-            <CalendarDays size={18} />
-            {data.bookings.filter((b) => b.roomId === room.id && b.date === date).length} Buchungen
-          </span>
-          <Button variant="outline" asChild>
-            <Link to="/editor">
-              <Plus size={15} />
-              Grundriss bearbeiten
-            </Link>
-          </Button>
-        </section>
-      )}
+        <span>
+          <Armchair size={18} />
+          {roomDesks.length} Arbeitsplätze
+        </span>
+        <span>
+          <CalendarDays size={18} />
+          {data.bookings.filter((b) => b.roomId === room.id && b.date === date).length} Buchungen
+        </span>
+        <Button variant="outline" asChild>
+          <Link to="/editor">
+            <Plus size={15} />
+            Grundriss bearbeiten
+          </Link>
+        </Button>
+      </section>
     </>
   );
 }

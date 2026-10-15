@@ -35,6 +35,8 @@ import { SettingsPage } from './pages/SettingsPage';
 import { useOfficeStore } from './store/useOfficeStore';
 import { formatDate, today } from './domain/booking';
 import { TimeWindowPicker } from './components/TimeWindowPicker';
+import { Dashboard } from './components/Dashboard';
+import { PresentationPage } from './pages/PresentationPage';
 
 const navigation = [
   { path: '/', label: 'Übersicht', Icon: LayoutDashboard },
@@ -122,7 +124,9 @@ function Shell() {
     );
   }
   return (
-    <div className="app-shell">
+    <div
+      className={`app-shell ${location.pathname === '/editor' ? 'editor-shell' : ''} ${location.pathname === '/praesentation' ? 'presentation-shell' : ''}`}
+    >
       {sidebar && (
         <button
           className="sidebar-backdrop"
@@ -342,10 +346,14 @@ function Shell() {
             <div className="loading-state">Ihre Arbeitswelt wird vorbereitet …</div>
           ) : (
             <Routes>
-              <Route path="/" element={<WorkspaceView onBook={setTarget} notify={notify} />} />
+              <Route path="/" element={<Dashboard onBook={setTarget} notify={notify} />} />
+              <Route
+                path="/praesentation"
+                element={<PresentationPage onBook={setTarget} />}
+              />
               <Route
                 path="/raumplanung"
-                element={<WorkspaceView full onBook={setTarget} notify={notify} />}
+                element={<WorkspaceView onBook={setTarget} />}
               />
               <Route path="/buchungen" element={<BookingsPage notify={notify} />} />
               <Route path="/mitarbeiter" element={<EmployeesPage />} />
@@ -374,7 +382,7 @@ function Shell() {
               OFFICEFLOW<span className="footer-divider">/</span>Mehr Raum. Mehr Möglichkeiten.
             </span>
             <span>
-              Demo-Version 0.2<span className="footer-divider">·</span>Daten bleiben in Ihrem Browser
+              Demo-Version 0.3<span className="footer-divider">·</span>Daten bleiben in Ihrem Browser
             </span>
           </footer>
         </main>

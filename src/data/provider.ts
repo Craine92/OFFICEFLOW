@@ -1,6 +1,7 @@
 import type { OfficeData, OfficeRoom, BookingInput, Booking, Employee } from '../domain/types';
 import { createSeed } from './seed';
 import { migrateOfficeData } from './migration';
+import { LAYER_IDS } from '../domain/design';
 
 export interface WorkspaceDataProvider {
   readonly mode: 'demo' | 'microsoft-graph';
@@ -20,11 +21,12 @@ export interface MicrosoftGraphGateway {
 }
 export const STORAGE_KEY = 'officeflow.demo.v1';
 export const MIGRATION_BACKUP_KEY = 'officeflow.demo.backup.v1';
+export const V2_BACKUP_KEY = 'officeflow.demo.backup.v2';
 function validData(value: unknown): value is OfficeData {
   if (!value || typeof value !== 'object') return false;
   const d = value as Omit<OfficeData, 'version'> & { version: number };
   return (
-    [1, 2].includes(d.version) &&
+    [1, 2, 3].includes(d.version) &&
     Array.isArray(d.rooms) &&
     d.rooms.length > 0 &&
     d.rooms.every(
@@ -45,6 +47,38 @@ function validData(value: unknown): value is OfficeData {
             ['desk', 'meeting', 'lounge', 'plant'].includes(o.kind) &&
             [o.x, o.y, o.rotation, o.width, o.height].every(Number.isFinite),
         ) &&
+        (d.version < 3 ||
+          (['walls', 'openings', 'zones', 'furniture', 'fixtures', 'annotations'].every((key) =>
+            Array.isArray((r as unknown as Record<string, unknown>)[key]),
+          ) &&
+            r.layers &&
+            LAYER_IDS.every(
+              (id) => typeof r.layers[id]?.visible === 'boolean' && typeof r.layers[id]?.locked === 'boolean',
+            ) &&
+            [...r.furniture, ...r.fixtures, ...r.zones, ...r.annotations].every(
+              (o) =>
+                o &&
+                typeof o.id === 'string' &&
+                typeof o.name === 'string' &&
+                [o.x, o.y, o.width, o.height, o.rotation].every(Number.isFinite),
+            ) &&
+            r.walls.every(
+              (w) =>
+                w &&
+                typeof w.id === 'string' &&
+                typeof w.name === 'string' &&
+                w.start &&
+                w.end &&
+                [w.start.x, w.start.y, w.end.x, w.end.y, w.thickness].every(Number.isFinite),
+            ) &&
+            r.openings.every(
+              (o) =>
+                o &&
+                typeof o.id === 'string' &&
+                typeof o.name === 'string' &&
+                r.walls.some((w) => w.id === o.wallId) &&
+                [o.offset, o.width].every(Number.isFinite),
+            ))) &&
         (!r.background ||
           (typeof r.background.assetId === 'string' &&
             typeof r.background.name === 'string' &&
@@ -105,7 +139,8 @@ export class DemoDataProvider implements WorkspaceDataProvider {
       const { data, migrated } = migrateOfficeData(parsed);
       if (migrated) {
         try {
-          if (!this.storage.getItem(MIGRATION_BACKUP_KEY)) this.storage.setItem(MIGRATION_BACKUP_KEY, raw);
+          const key = (parsed as { version: number }).version === 2 ? V2_BACKUP_KEY : MIGRATION_BACKUP_KEY;
+          if (!this.storage.getItem(key)) this.storage.setItem(key, raw);
           await this.save(data);
         } catch {
           throw new Error(
@@ -130,6 +165,7 @@ export class DemoDataProvider implements WorkspaceDataProvider {
     const data = createSeed();
     await this.save(data);
     this.storage.removeItem?.(MIGRATION_BACKUP_KEY);
+    this.storage.removeItem?.(V2_BACKUP_KEY);
     return data;
   }
 }

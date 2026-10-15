@@ -61,7 +61,7 @@ it('passt gedrehte Bilder ohne Verzerrung ein', () => {
 });
 it('skaliert Positionen bei einer Planänderung und erhält Objekt- und Buchungskennungen', () => {
   const room = { ...createSeed().rooms[0], layout: 'custom' as const };
-  const resized = resizeRoom(room, 1800, 1140);
+  const resized = resizeRoom(room, room.width * 2, room.height * 2);
   expect(resized.objects[0]).toMatchObject({
     id: room.objects[0].id,
     x: room.objects[0].x * 2,

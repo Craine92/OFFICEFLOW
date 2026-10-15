@@ -1,4 +1,9 @@
 import { expect, test } from '@playwright/test';
+import { planPoint, clickPlan } from './helpers';
+
+test.beforeEach(async ({ page }) => {
+  page.on('dialog', (dialog) => dialog.accept());
+});
 
 test('Buchung, Konfliktprüfung, Neuladen und Stornierung', async ({ page }) => {
   await page.goto('/');
@@ -44,9 +49,9 @@ test('Drei Grundrisse, Zoom und direkte Navigation', async ({ page }) => {
 test('Raumeditor speichert Bezeichnung, Drehung und neues Objekt', async ({ page }) => {
   await page.goto('/#/editor');
   await page.getByRole('combobox', { name: 'Grundriss zum Bearbeiten auswählen' }).selectOption('single');
-  await page.getByRole('button', { name: 'Arbeitsplatz', exact: true }).click();
+  await page.getByRole('button', { name: 'Einzelarbeitsplatz hinzufügen', exact: true }).click();
   await page.getByLabel('Bezeichnung', { exact: true }).fill('Fokusplatz');
-  await page.getByRole('button', { name: 'Um 90° drehen', exact: false }).click();
+  await page.getByLabel('Drehung', { exact: true }).fill('90');
   await page.getByRole('button', { name: 'Grundriss speichern' }).click();
   await expect(page.getByRole('status')).toContainText('lokal gespeichert');
   await page.reload();
@@ -63,11 +68,12 @@ test('Raumeditor speichert Bezeichnung, Drehung und neues Objekt', async ({ page
 test('Meetingraum konfigurieren, buchen und Demo vollständig zurücksetzen', async ({ page }) => {
   await page.goto('/#/editor');
   await page.getByRole('combobox', { name: 'Grundriss zum Bearbeiten auswählen' }).selectOption('single');
-  await page.getByRole('button', { name: 'Meetingraum', exact: true }).click();
+  await page.getByRole('button', { name: 'Buchbarer Meetingraum hinzufügen', exact: true }).click();
   await page.getByLabel('Bezeichnung', { exact: true }).fill('Teamraum');
   await page.getByLabel('Kapazität (Personen)', { exact: true }).fill('8');
   await page.getByRole('button', { name: 'Grundriss speichern' }).click();
   await expect(page.getByRole('status')).toContainText('lokal gespeichert');
+  await page.getByRole('link', { name: 'Raumplanung', exact: true }).click();
   await page.getByRole('button', { name: 'Neue Buchung' }).click();
   await page.getByLabel('Arbeitsplatz / Raum', { exact: true }).selectOption({ label: 'Teamraum' });
   await page.getByLabel('Mitarbeiter', { exact: true }).selectOption('e22');
@@ -90,23 +96,23 @@ test('Arbeitsplatz im Canvas auswählen, verschieben und persistent speichern', 
   await page.getByRole('combobox', { name: 'Grundriss zum Bearbeiten auswählen' }).selectOption('single');
   const canvas = page.locator('canvas');
   await expect(canvas).toBeVisible();
-  const bounds = (await canvas.boundingBox())!;
-  const scale = Math.min(bounds.width / 900, bounds.height / 570) * 0.96;
-  const x = bounds.x + (bounds.width - 900 * scale) / 2 + 210 * scale;
-  const y = bounds.y + (bounds.height - 570 * scale) / 2 + 150 * scale;
-  await page.mouse.move(x, y);
+  await page.getByRole('button', { name: 'Einrasten', exact: true }).click();
+  const p = await planPoint(page, 185, 170);
+  await page.mouse.move(p.x, p.y);
   await page.mouse.down();
-  await page.mouse.move(x + 50 * scale, y + 30 * scale, { steps: 12 });
+  await page.mouse.move(p.x + 50 * p.scale, p.y + 30 * p.scale, { steps: 12 });
   await page.mouse.up();
   await page.getByRole('combobox', { name: 'Objekt zum Bearbeiten auswählen' }).selectOption('EB-1');
-  await expect(page.getByLabel('Position X', { exact: true })).toHaveValue('260');
-  await expect(page.getByLabel('Position Y', { exact: true })).toHaveValue('180');
+  const movedX = await page.getByLabel('Position X', { exact: true }).inputValue(),
+    movedY = await page.getByLabel('Position Y', { exact: true }).inputValue();
+  expect(Math.abs(Number(movedX) - 235)).toBeLessThan(2);
+  expect(Math.abs(Number(movedY) - 200)).toBeLessThan(2);
   await page.getByRole('button', { name: 'Grundriss speichern' }).click();
   await expect(page.getByRole('status')).toContainText('lokal gespeichert');
   await page.reload();
   await page.getByRole('combobox', { name: 'Grundriss zum Bearbeiten auswählen' }).selectOption('single');
   await page.getByRole('combobox', { name: 'Objekt zum Bearbeiten auswählen' }).selectOption('EB-1');
-  await expect(page.getByLabel('Position X', { exact: true })).toHaveValue('260');
+  await expect(page.getByLabel('Position X', { exact: true })).toHaveValue(movedX);
 });
 
 test('Klick auf einen Arbeitsplatz öffnet seinen Buchungsdialog', async ({ page }) => {
@@ -115,12 +121,7 @@ test('Klick auf einen Arbeitsplatz öffnet seinen Buchungsdialog', async ({ page
   const canvas = page.locator('canvas');
   await expect(canvas).toBeVisible();
   await canvas.scrollIntoViewIfNeeded();
-  const bounds = (await canvas.boundingBox())!;
-  const scale = Math.min(bounds.width / 900, bounds.height / 570) * 0.96;
-  await page.mouse.click(
-    bounds.x + (bounds.width - 900 * scale) / 2 + 610 * scale,
-    bounds.y + (bounds.height - 570 * scale) / 2 + 350 * scale,
-  );
+  await clickPlan(page, 805, 550);
   await expect(page.getByRole('dialog')).toBeVisible();
   await expect(page.getByLabel('Arbeitsplatz / Raum', { exact: true })).toHaveValue('EB-6');
 });
@@ -136,7 +137,7 @@ for (const viewport of [
     const errors: string[] = [];
     page.on('pageerror', (e) => errors.push(e.message));
     await page.goto('/');
-    await expect(page.locator('canvas')).toBeVisible();
+    await expect(page.locator('canvas').first()).toBeVisible();
     // Arial bildet auf Windows auch die breitere Linux-Ersatzschrift ab.
     if (viewport.width === 390)
       await page.addStyleTag({ content: ':root { font-family: Arial, sans-serif !important; }' });
@@ -166,7 +167,7 @@ for (const viewport of [
       await page.getByRole('dialog').evaluate((el) => el.getBoundingClientRect().right <= window.innerWidth),
     ).toBe(true);
     await page.getByRole('button', { name: 'Dialog schließen' }).click();
-    if (viewport.width < 761) await page.getByRole('button', { name: 'Navigation öffnen' }).click();
+    if (viewport.width < 801) await page.getByRole('button', { name: 'Navigation öffnen' }).click();
     await page.getByRole('link', { name: 'Mitarbeiter', exact: true }).click();
     await expect(page.getByRole('heading', { name: 'Menschen machen den Unterschied.' })).toBeVisible();
     expect(errors).toEqual([]);

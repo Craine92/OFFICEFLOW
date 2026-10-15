@@ -54,7 +54,7 @@ try {
   await page.reload();
   await page.getByRole('heading', { name: 'Platz für einen guten Tag.' }).waitFor();
   await page.getByRole('link', { name: 'Übersicht', exact: true }).click();
-  await page.locator('canvas').waitFor();
+  await page.locator('canvas').first().waitFor();
   await page.getByRole('button', { name: 'Neue Buchung' }).click();
   await page.getByLabel('Arbeitsplatz / Raum', { exact: true }).selectOption('OS-24');
   await page.getByLabel('Mitarbeiter', { exact: true }).selectOption('e22');
@@ -68,7 +68,7 @@ try {
   // Ausgangsdaten für die dokumentierten Bildschirmfotos.
   await page.evaluate(() => localStorage.removeItem('officeflow.demo.v1'));
   await page.reload();
-  await page.locator('canvas').waitFor();
+  await page.locator('canvas').first().waitFor();
   await mkdir('docs/screenshots', { recursive: true });
   await page.screenshot({ path: 'docs/screenshots/desktop.png', fullPage: true, animations: 'disabled' });
   await page.getByRole('button', { name: 'Dunkelmodus aktivieren' }).click();
@@ -115,13 +115,14 @@ try {
   await page.getByRole('button', { name: 'Weiter', exact: true }).click();
   await page.getByRole('button', { name: 'Importieren und speichern', exact: true }).click();
   await page.locator('.floorplan[data-background-state="ready"]').waitFor();
-  await page.getByRole('button', { name: 'Arbeitsplatz', exact: true }).click();
+  await page.getByRole('button', { name: 'Einzelarbeitsplatz hinzufügen', exact: true }).click();
   await page.getByLabel('Bezeichnung', { exact: true }).fill('Projektplatz 01');
   await page.getByLabel('Position X', { exact: true }).fill('250');
   await page.getByLabel('Position Y', { exact: true }).fill('330');
   await page.getByRole('button', { name: 'Grundriss speichern', exact: true }).click();
   await page.getByRole('status').filter({ hasText: 'lokal gespeichert' }).waitFor();
   await page.screenshot({ path: 'docs/screenshots/raumeditor.png', fullPage: false, animations: 'disabled' });
+  await page.getByRole('link', { name: 'Raumplanung', exact: true }).click();
   await page.getByRole('button', { name: 'Neue Buchung' }).click();
   await page.getByLabel('Mitarbeiter', { exact: true }).selectOption('e22');
   await page.getByRole('button', { name: 'Verbindlich buchen' }).click();
@@ -131,6 +132,51 @@ try {
     await page.evaluate(() => JSON.parse(localStorage.getItem('officeflow.demo.v1')).bookings.length),
     20,
   );
+  // Frische Daten für die vollständige Dokumentation der neuen Oberfläche.
+  await page.evaluate(() => localStorage.removeItem('officeflow.demo.v1'));
+  await page.goto(url);
+  await page.reload();
+  await page.locator('canvas').first().waitFor();
+  await page.evaluate(() => document.fonts.ready);
+  for (const [route, name] of [
+    ['', 'desktop'],
+    ['#/raumplanung', 'raumplanung'],
+    ['#/buchungen', 'buchungen'],
+    ['#/mitarbeiter', 'mitarbeiter'],
+    ['#/einstellungen', 'einstellungen'],
+    ['#/editor', 'raumeditor'],
+    ['#/praesentation', 'praesentation'],
+  ]) {
+    await page.goto(url + route);
+    await page.locator('main').waitFor();
+    await page.waitForTimeout(300);
+    await page.screenshot({
+      path: 'docs/screenshots/' + name + '.png',
+      fullPage: true,
+      animations: 'disabled',
+    });
+  }
+  await page.goto(url + '#/raumplanung');
+  for (const [room, name] of [
+    ['Einzelbüro', 'einzelbuero'],
+    ['Hybrid Office', 'hybrid-office'],
+  ]) {
+    await page.getByRole('button', { name: room, exact: false }).click();
+    await page.waitForTimeout(150);
+    await page.screenshot({
+      path: 'docs/screenshots/' + name + '.png',
+      fullPage: true,
+      animations: 'disabled',
+    });
+  }
+  await page.goto(url + '#/editor');
+  await page.getByRole('combobox', { name: 'Grundriss zum Bearbeiten auswählen' }).selectOption('open');
+  await page.getByRole('combobox', { name: 'Objekt zum Bearbeiten auswählen' }).selectOption('OS-1');
+  await page.screenshot({
+    path: 'docs/screenshots/eigenschaften.png',
+    fullPage: true,
+    animations: 'disabled',
+  });
   assert.deepEqual(errors, [], 'Browser- oder Asset-Fehler im Produktions-Build');
   console.log(
     `Produktionsprüfung erfolgreich: ${prefix}, direkte Navigation, PDF-Worker und lokale Schriften, PDF-Seite 2, Bildimport, Buchung auf eigenem Plan, Persistenz und responsive Ansichten.`,

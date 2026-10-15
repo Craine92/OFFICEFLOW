@@ -6,6 +6,7 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
   reporter: 'list',
+  snapshotPathTemplate: '{testDir}/../visual/{arg}{ext}',
   use: {
     baseURL: 'http://127.0.0.1:5173',
     locale: 'de-DE',

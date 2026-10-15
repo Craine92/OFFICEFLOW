@@ -1,4 +1,7 @@
 import type { OfficeRoom, PlanBackground, PlanObject } from './types';
+import { designIssues } from './validation';
+import { objectCorners } from './geometry';
+export { objectCorners, objectsOverlap, collisions } from './geometry';
 
 type Dimensions = Pick<OfficeRoom, 'width' | 'height' | 'layout'>;
 const demo: Dimensions = { width: 900, height: 570, layout: 'demo' };
@@ -38,46 +41,8 @@ export function objectFits(object: PlanObject, room: Dimensions) {
     )
   );
 }
-export function objectCorners(object: PlanObject) {
-  const radians = (object.rotation * Math.PI) / 180;
-  return [
-    [-1, -1],
-    [1, -1],
-    [1, 1],
-    [-1, 1],
-  ].map(([x, y]) => ({
-    x:
-      object.x + ((x * object.width) / 2) * Math.cos(radians) - ((y * object.height) / 2) * Math.sin(radians),
-    y:
-      object.y + ((x * object.width) / 2) * Math.sin(radians) + ((y * object.height) / 2) * Math.cos(radians),
-  }));
-}
-// Separating-Axis-Theorem für gedrehte Objekte; Berührungen gelten nicht als Überlappung.
-export function objectsOverlap(a: PlanObject, b: PlanObject) {
-  const ac = objectCorners(a),
-    bc = objectCorners(b);
-  for (const corners of [ac, bc])
-    for (let i = 0; i < 2; i++) {
-      const p = corners[i],
-        q = corners[i + 1],
-        axis = { x: -(q.y - p.y), y: q.x - p.x };
-      const pa = ac.map((v) => v.x * axis.x + v.y * axis.y),
-        pb = bc.map((v) => v.x * axis.x + v.y * axis.y);
-      if (Math.max(...pa) <= Math.min(...pb) + 0.001 || Math.max(...pb) <= Math.min(...pa) + 0.001)
-        return false;
-    }
-  return true;
-}
-export function collisions(objects: PlanObject[]) {
-  const result: [string, string][] = [];
-  for (let i = 0; i < objects.length; i++)
-    for (let j = i + 1; j < objects.length; j++)
-      if (objectsOverlap(objects[i], objects[j])) result.push([objects[i].id, objects[j].id]);
-  return result;
-}
 export function nextObjectName(kind: PlanObject['kind'], objects: PlanObject[]) {
-  const prefix =
-    kind === 'desk' ? 'AP-' : kind === 'meeting' ? 'Meetingraum ' : kind === 'plant' ? 'Pflanze ' : 'Lounge ';
+  const prefix = kind === 'desk' ? 'AP-' : 'Meetingraum ';
   const names = new Set(objects.map((o) => o.name.toLocaleLowerCase('de-DE')));
   let n = 1;
   while (names.has(`${prefix}${kind === 'desk' ? String(n).padStart(2, '0') : n}`.toLocaleLowerCase('de-DE')))
@@ -108,6 +73,30 @@ export function resizeRoom(room: OfficeRoom, width: number, height: number): Off
     next = { ...room, width, height };
   return {
     ...next,
+    walls: room.walls.map((w) => ({
+      ...w,
+      start: { x: w.start.x * sx, y: w.start.y * sy },
+      end: { x: w.end.x * sx, y: w.end.y * sy },
+    })),
+    openings: room.openings.map((o) => {
+      const w = room.walls.find((w) => w.id === o.wallId);
+      const factor = w
+        ? Math.hypot((w.end.x - w.start.x) * sx, (w.end.y - w.start.y) * sy) /
+          Math.hypot(w.end.x - w.start.x, w.end.y - w.start.y)
+        : 1;
+      return { ...o, offset: o.offset * factor };
+    }),
+    zones: room.zones.map((o) => ({
+      ...o,
+      x: o.x * sx,
+      y: o.y * sy,
+      width: o.width * sx,
+      height: o.height * sy,
+    })),
+    furniture: room.furniture.map((o) => ({ ...o, x: o.x * sx, y: o.y * sy })),
+    fixtures: room.fixtures.map((o) => ({ ...o, x: o.x * sx, y: o.y * sy })),
+    annotations: room.annotations.map((o) => ({ ...o, x: o.x * sx, y: o.y * sy })),
+    calibration: undefined,
     objects: room.objects.map((o) => constrainObject({ ...o, x: o.x * sx, y: o.y * sy }, next)),
     background: room.background
       ? {
@@ -169,5 +158,5 @@ export function validateRoom(room: OfficeRoom, rooms: OfficeRoom[] = []): string
     )
   )
     return 'Diese Bezeichnung wird bereits in einem anderen Bürobereich verwendet. Bitte vergeben Sie eine eindeutige Arbeitsplatznummer.';
-  return null;
+  return designIssues(room).find((i) => i.severity === 'error')?.message ?? null;
 }

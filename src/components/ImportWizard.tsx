@@ -16,6 +16,7 @@ import { Button } from './ui/button';
 import { openImport, type ImportSession } from '../data/importer';
 import { planAssets } from '../data/assets';
 import { fitBackground } from '../domain/layout';
+import { emptyDesign } from '../domain/design';
 import type { OfficeRoom, PlanBackground, PlanAsset } from '../domain/types';
 import { useOfficeStore } from '../store/useOfficeStore';
 
@@ -142,6 +143,7 @@ export function ImportWizard({
     destination === 'replace'
       ? currentRoom
       : {
+          ...emptyDesign(),
           width: Math.max(160, Math.round(sourceWidth * factor)),
           height: Math.max(160, Math.round(sourceHeight * factor)),
         };

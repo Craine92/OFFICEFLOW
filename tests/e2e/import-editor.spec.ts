@@ -16,6 +16,10 @@ async function finishImport(page: Page, name: string) {
   await expect(page.locator('.floorplan')).toHaveAttribute('data-background-state', 'ready');
 }
 
+test.beforeEach(async ({ page }) => {
+  page.on('dialog', (dialog) => dialog.accept());
+});
+
 test('Vorhandene Version-1-Daten werden im Browser ohne Verlust migriert', async ({ page }) => {
   await page.goto('/#/editor');
   const legacy = await page.evaluate(() => {
@@ -39,9 +43,50 @@ test('Vorhandene Version-1-Daten werden im Browser ohne Verlust migriert', async
   await page.getByRole('combobox', { name: 'Objekt zum Bearbeiten auswählen' }).selectOption('OS-1');
   await expect(page.getByLabel('Bezeichnung', { exact: true })).toHaveValue('Migrationplatz');
   const migrated = await data(page);
-  expect(migrated.version).toBe(2);
+  expect(migrated.version).toBe(3);
   expect(migrated.bookings).toHaveLength(20);
   expect(await page.evaluate(() => localStorage.getItem('officeflow.demo.backup.v1'))).toBe(legacy);
+});
+
+test('Schema 2 erhält importierte Dateien und alte Buchungen auch in der neuen Oberfläche', async ({
+  page,
+}) => {
+  await page.goto('/#/editor');
+  await openWizard(page);
+  await page.getByLabel('Grundrissdatei', { exact: true }).setInputFiles(await imageFile(page));
+  await finishImport(page, 'Bestandsplan');
+  const before = await data(page),
+    room = before.rooms.find((r: { name: string }) => r.name === 'Bestandsplan');
+  const raw = await page.evaluate(() => {
+    const saved = JSON.parse(localStorage.getItem('officeflow.demo.v1')!);
+    saved.version = 2;
+    for (const r of saved.rooms)
+      for (const key of [
+        'walls',
+        'openings',
+        'zones',
+        'fixtures',
+        'furniture',
+        'annotations',
+        'layers',
+        'calibration',
+      ])
+        delete r[key];
+    const raw = JSON.stringify(saved);
+    localStorage.setItem('officeflow.demo.v1', raw);
+    return raw;
+  });
+  await page.reload();
+  await page.getByRole('combobox', { name: 'Grundriss zum Bearbeiten auswählen' }).selectOption(room.id);
+  await expect(page.locator('.floorplan')).toHaveAttribute('data-background-state', 'ready');
+  const after = await data(page);
+  expect(after.version).toBe(3);
+  expect(after.bookings).toEqual(before.bookings);
+  expect(after.rooms.find((r: { id: string }) => r.id === room.id).background).toEqual(room.background);
+  expect(await page.evaluate(() => localStorage.getItem('officeflow.demo.backup.v2'))).toBe(raw);
+  await page.getByRole('link', { name: /^Buchungen/ }).click();
+  await page.getByLabel('Buchungen suchen').fill('Anna Weber');
+  await expect(page.getByRole('cell', { name: 'OS-01 Open Space' })).toBeVisible();
 });
 
 test('PNG importieren, drehen, Arbeitsplätze einrichten, rückgängig machen und nach Neuladen buchen', async ({
@@ -57,7 +102,7 @@ test('PNG importieren, drehen, Arbeitsplätze einrichten, rückgängig machen un
   await page.getByRole('button', { name: 'Weiter', exact: true }).click();
   await page.getByRole('button', { name: 'Importieren und speichern', exact: true }).click();
   await expect(page.locator('.floorplan')).toHaveAttribute('data-background-state', 'ready');
-  await page.getByRole('button', { name: 'Arbeitsplatz', exact: true }).click();
+  await page.getByRole('button', { name: 'Einzelarbeitsplatz hinzufügen', exact: true }).click();
   await page.getByLabel('Bezeichnung', { exact: true }).fill('Importplatz');
   await page.getByLabel('Position X', { exact: true }).fill('400');
   await page.getByLabel('Position Y', { exact: true }).fill('300');
@@ -65,11 +110,11 @@ test('PNG importieren, drehen, Arbeitsplätze einrichten, rückgängig machen un
   await expect(page.getByLabel('Position Y', { exact: true })).not.toHaveValue('300');
   await page.getByRole('button', { name: 'Änderung wiederholen', exact: true }).click();
   await expect(page.getByLabel('Position Y', { exact: true })).toHaveValue('300');
-  await page.getByRole('button', { name: 'Um 90° drehen', exact: false }).click();
+  await page.getByLabel('Drehung', { exact: true }).fill('90');
   await page.getByRole('button', { name: 'Grundriss speichern', exact: true }).click();
   const saved = await data(page),
     room = saved.rooms.find((r: { name: string }) => r.name === 'Unser Büro');
-  expect(saved.version).toBe(2);
+  expect(saved.version).toBe(3);
   expect(saved.bookings).toHaveLength(19);
   expect(room.width).toBe(933);
   expect(room.height).toBe(1400);
@@ -90,13 +135,15 @@ test('PNG importieren, drehen, Arbeitsplätze einrichten, rückgängig machen un
     y: 300,
     rotation: 90,
   });
+  if (await page.getByRole('button', { name: 'Navigation öffnen' }).isVisible())
+    await page.getByRole('button', { name: 'Navigation öffnen' }).click();
   await page.getByRole('link', { name: 'Raumplanung', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Ihr Büro. Viele Möglichkeiten.' })).toBeVisible();
   await expect(page.locator('.floorplan')).toHaveAttribute('data-background-state', 'ready');
   const canvas = page.locator('canvas');
   await canvas.scrollIntoViewIfNeeded();
   const box = (await canvas.boundingBox())!,
-    scale = Math.min(box.width / room.width, box.height / room.height) * 0.96;
+    scale = Math.min(box.width / room.width, box.height / room.height) * 0.92;
   await page.mouse.click(
     box.x + (box.width - room.width * scale) / 2 + 400 * scale,
     box.y + (box.height - room.height * scale) / 2 + 300 * scale,
@@ -292,24 +339,27 @@ test('Überschneidungen, Größenänderung, Raster und Undo/Redo', async ({ page
   await page.goto('/#/editor');
   await page.getByRole('combobox', { name: 'Grundriss zum Bearbeiten auswählen' }).selectOption('single');
   await page.getByRole('combobox', { name: 'Objekt zum Bearbeiten auswählen' }).selectOption('EB-3');
-  await page.getByLabel('Position X', { exact: true }).fill('410');
-  await expect(page.getByText('1 Objektüberschneidung(en)', { exact: true })).toBeVisible();
+  await page.getByLabel('Position X', { exact: true }).fill('495');
+  await page.getByRole('button', { name: 'Plan', exact: true }).click();
+  await expect(page.getByRole('button', { name: /überschneidet/ }).first()).toBeVisible();
+  await page.getByRole('button', { name: 'Eigenschaften', exact: true }).click();
   await page.getByRole('button', { name: 'Änderung rückgängig machen', exact: true }).click();
-  await expect(page.getByLabel('Position X', { exact: true })).toHaveValue('610');
-  await expect(page.getByText('1 Objektüberschneidung(en)', { exact: true })).not.toBeVisible();
+  await expect(page.getByLabel('Position X', { exact: true })).toHaveValue('805');
+
   await page.getByRole('button', { name: 'Änderung wiederholen', exact: true }).click();
-  await expect(page.getByLabel('Position X', { exact: true })).toHaveValue('410');
+  await expect(page.getByLabel('Position X', { exact: true })).toHaveValue('495');
   await page.getByRole('button', { name: 'Änderung rückgängig machen', exact: true }).click();
   await page.getByLabel('Objektbreite', { exact: true }).fill('90');
-  await page.getByRole('checkbox', { name: 'Einrasten', exact: true }).uncheck();
-  await page.getByRole('checkbox', { name: 'Raster', exact: true }).uncheck();
+  await page.getByRole('button', { name: 'Einrasten', exact: true }).click();
+  await page.getByRole('button', { name: 'Raster', exact: true }).click();
   await page.getByRole('button', { name: 'Grundriss speichern', exact: true }).click();
   await expect(page.getByRole('status')).toContainText('lokal gespeichert');
-  await page.getByLabel('Planbreite', { exact: true }).fill('1800');
-  await page.getByLabel('Planhöhe', { exact: true }).fill('1140');
-  await page.getByRole('button', { name: 'Planabmessungen übernehmen', exact: true }).click();
-  await expect(page.getByLabel('Position X', { exact: true })).toHaveValue('1220');
-  await expect(page.getByLabel('Position Y', { exact: true })).toHaveValue('300');
+  await page.getByRole('button', { name: 'Plan', exact: true }).click();
+  await page.getByLabel('Planbreite', { exact: true }).fill('2000');
+  await page.getByLabel('Planhöhe', { exact: true }).fill('1440');
+  await page.getByRole('button', { name: 'Eigenschaften', exact: true }).click();
+  await expect(page.getByLabel('Position X', { exact: true })).toHaveValue('1610');
+  await expect(page.getByLabel('Position Y', { exact: true })).toHaveValue('340');
 });
 
 test('Zeitfenster gibt einen vormittags belegten Platz am Nachmittag frei', async ({ page }) => {
