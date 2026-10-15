@@ -141,7 +141,18 @@ for (const viewport of [
       await page.screenshot({ path: 'test-results/officeflow-desktop.png', fullPage: true });
     if (viewport.width === 390)
       await page.screenshot({ path: 'test-results/officeflow-mobile.png', fullPage: true });
-    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    const overflow = await page.evaluate(() => ({
+      width: window.innerWidth,
+      scrollWidth: document.documentElement.scrollWidth,
+      elements: Array.from(document.querySelectorAll('body *'))
+        .map((el) => ({
+          tag: el.tagName,
+          className: el.getAttribute('class'),
+          right: el.getBoundingClientRect().right,
+        }))
+        .filter((el) => el.right > window.innerWidth + 1),
+    }));
+    expect(overflow.scrollWidth, JSON.stringify(overflow)).toBeLessThanOrEqual(overflow.width);
     await page.getByRole('button', { name: 'Dunkelmodus aktivieren' }).click();
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
     await page.reload();
