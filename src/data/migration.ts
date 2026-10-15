@@ -8,10 +8,12 @@ export function migrateOfficeData(value: unknown): { data: OfficeData; migrated:
       'Diese Datenversion wird nicht unterstützt. Bitte verwenden Sie eine passende OFFICEFLOW-Version.',
     );
   const data: OfficeData = { ...structuredClone(input), version: 3 };
-  if (input.version < 3)
+  const repairLegacy = input.version === 3 && data.rooms.some((room) => room.layout === undefined);
+  if (input.version < 3 || repairLegacy)
     data.rooms = data.rooms.map((room) => {
+      if (input.version === 3 && room.layout !== undefined) return room;
       const legacy = room.objects as unknown as Array<Record<string, unknown>>;
-      const layout = input.version === 1 ? 'demo' : room.layout;
+      const layout = input.version === 1 ? 'demo' : (room.layout ?? 'demo');
       const design = emptyDesign();
       if (layout === 'demo' && !room.walls?.length) {
         const left = (room.width * 40) / 900,
@@ -44,6 +46,12 @@ export function migrateOfficeData(value: unknown): { data: OfficeData; migrated:
           },
         ];
       }
+      if (input.version === 3)
+        return {
+          ...room,
+          layout,
+          ...(!room.walls.length ? { walls: design.walls, openings: design.openings } : {}),
+        };
       return {
         ...design,
         ...room,
@@ -57,5 +65,5 @@ export function migrateOfficeData(value: unknown): { data: OfficeData; migrated:
           })) as OfficeData['rooms'][number]['furniture'],
       };
     });
-  return { data, migrated: input.version < 3 };
+  return { data, migrated: input.version < 3 || repairLegacy };
 }

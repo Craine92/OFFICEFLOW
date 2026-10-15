@@ -169,7 +169,7 @@ Technik: React 19, TypeScript, Vite, Tailwind CSS 4, shadcn/ui-Muster und Radix 
 
 Die Referenzbilder unter `tests/visual/` werden mit festem Datum und lokal gebündelter Schrift geprüft. Nach einer beabsichtigten UI-Änderung `npm run test:visual -- --update-snapshots` ausführen, die Bilder prüfen und gemeinsam mit dem Code einchecken. Datums-/Zeitfelder sind im Bildvergleich maskiert; deren Funktion wird separat getestet. Screenshots aller Hauptansichten finden sich unter `docs/screenshots/`. Eigene Vektorsymbole benötigen keine Fremdassets; die Lizenz der mitgelieferten Inter-Schrift liegt in `public/licenses/Inter-OFL.txt`.
 
-Version 0.3 enthält **47 fachliche Tests** und **33 Playwright-Browserprüfungen**, einschließlich aller bisherigen Abläufe, Datei- und PDF-Import, Migration, IndexedDB, Architekturwerkzeuge, Gruppen, Ebenen, Undo/Redo, Skalierung, Buchungen auf eigenen Plänen, zeitgenauer Verfügbarkeit und drei automatischer Bildvergleiche. Geprüfte Breiten: 390, 768, 1024 und 1440 Pixel.
+Version 0.3 enthält **48 fachliche Tests** und **33 Playwright-Browserprüfungen**, einschließlich aller bisherigen Abläufe, Datei- und PDF-Import, Migration, IndexedDB, Architekturwerkzeuge, Gruppen, Ebenen, Undo/Redo, Skalierung, Buchungen auf eigenen Plänen, zeitgenauer Verfügbarkeit und drei automatischer Bildvergleiche. Geprüfte Breiten: 390, 768, 1024 und 1440 Pixel.
 
 `verify:production` liefert ausschließlich den echten Build unter einem Repository-Unterpfad aus und prüft direkte Navigation, Neuladen, PDF-Worker, lokale PDF-Ressourcen, Seite 2 einer PDF, Bildimport, Buchung auf eigenem Plan und Persistenz. Dabei werden die dokumentierten Bildschirmfotos erzeugt.
 

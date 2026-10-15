@@ -21,6 +21,7 @@ import {
 import { addCatalogItem, CATALOG } from './catalog';
 import { duplicateElements, alignElements, designIssues, connectWallEndpoint, pasteElements } from './editor';
 import { resizeRoom, validateRoom } from './layout';
+import { migrateOfficeData } from '../data/migration';
 import type { OfficeRoom, WallOpening, WallSegment } from './types';
 const room = (): OfficeRoom => ({
   ...createSeed().rooms[0],
@@ -48,6 +49,34 @@ const door: WallOpening = {
   hinge: 'left',
   swing: 'inward',
 };
+it('übernimmt alte Demo-Pläne ohne Layoutfeld und repariert solche bereits migrierten Bestände idempotent', () => {
+  const original = createSeed();
+  const legacy = {
+    ...original,
+    version: 2,
+    rooms: original.rooms.map((r) => {
+      const { layout, walls, openings, ...rest } = r;
+      void layout;
+      void walls;
+      void openings;
+      return rest;
+    }),
+  };
+  const upgraded = migrateOfficeData(legacy).data;
+  expect(upgraded.rooms[0].layout).toBe('demo');
+  expect(upgraded.rooms[0].walls).toHaveLength(4);
+  expect(upgraded.bookings).toEqual(original.bookings);
+  expect(upgraded.rooms[0].objects).toEqual(original.rooms[0].objects);
+  const partial = structuredClone(original);
+  delete partial.rooms[0].layout;
+  partial.rooms[0].walls = [];
+  partial.rooms[0].openings = [];
+  const repaired = migrateOfficeData(partial);
+  expect(repaired.migrated).toBe(true);
+  expect(repaired.data.rooms[0].walls).toHaveLength(4);
+  expect(repaired.data.rooms[0].furniture).toEqual(partial.rooms[0].furniture);
+  expect(migrateOfficeData(repaired.data).migrated).toBe(false);
+});
 describe('Architektur und Geometrie', () => {
   it('meldet sich kreuzende Wände und erlaubt gemeinsame Ecken', () => {
     const base = {

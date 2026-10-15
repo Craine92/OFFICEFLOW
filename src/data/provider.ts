@@ -22,6 +22,7 @@ export interface MicrosoftGraphGateway {
 export const STORAGE_KEY = 'officeflow.demo.v1';
 export const MIGRATION_BACKUP_KEY = 'officeflow.demo.backup.v1';
 export const V2_BACKUP_KEY = 'officeflow.demo.backup.v2';
+export const REPAIR_BACKUP_KEY = 'officeflow.demo.backup.v3';
 function validData(value: unknown): value is OfficeData {
   if (!value || typeof value !== 'object') return false;
   const d = value as Omit<OfficeData, 'version'> & { version: number };
@@ -139,7 +140,9 @@ export class DemoDataProvider implements WorkspaceDataProvider {
       const { data, migrated } = migrateOfficeData(parsed);
       if (migrated) {
         try {
-          const key = (parsed as { version: number }).version === 2 ? V2_BACKUP_KEY : MIGRATION_BACKUP_KEY;
+          const version = (parsed as { version: number }).version;
+          const key =
+            version === 3 ? REPAIR_BACKUP_KEY : version === 2 ? V2_BACKUP_KEY : MIGRATION_BACKUP_KEY;
           if (!this.storage.getItem(key)) this.storage.setItem(key, raw);
           await this.save(data);
         } catch {
@@ -166,6 +169,7 @@ export class DemoDataProvider implements WorkspaceDataProvider {
     await this.save(data);
     this.storage.removeItem?.(MIGRATION_BACKUP_KEY);
     this.storage.removeItem?.(V2_BACKUP_KEY);
+    this.storage.removeItem?.(REPAIR_BACKUP_KEY);
     return data;
   }
 }
