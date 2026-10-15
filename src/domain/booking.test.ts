@@ -53,4 +53,11 @@ describe('Buchungsregeln', () => {
     expect(statusFor(bookings, 'OS-1', '2099-01-01')).toBe('available');
     expect(statusFor(bookings, 'OS-1', today(), '13:00', '14:00')).toBe('available');
   });
+  it('gibt Plätze außerhalb ihrer konkreten Buchungszeit sofort frei', () => {
+    const { bookings } = createSeed();
+    expect(statusFor(bookings, 'OS-1', today(), '12:30', '13:00')).toBe('occupied');
+    expect(statusFor(bookings, 'OS-1', today(), '13:00', '18:00')).toBe('available');
+    expect(statusFor(bookings, 'OS-12', today(), '18:00', '19:00')).toBe('available');
+    expect(statusFor(bookings, 'OS-12', today(), '17:59', '18:01')).toBe('reserved');
+  });
 });

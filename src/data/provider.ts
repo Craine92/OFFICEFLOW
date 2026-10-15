@@ -1,5 +1,6 @@
 import type { OfficeData, OfficeRoom, BookingInput, Booking, Employee } from '../domain/types';
 import { createSeed } from './seed';
+import { migrateOfficeData } from './migration';
 
 export interface WorkspaceDataProvider {
   readonly mode: 'demo' | 'microsoft-graph';
@@ -18,15 +19,17 @@ export interface MicrosoftGraphGateway {
   updateRoom(room: OfficeRoom, etag: string): Promise<void>;
 }
 export const STORAGE_KEY = 'officeflow.demo.v1';
+export const MIGRATION_BACKUP_KEY = 'officeflow.demo.backup.v1';
 function validData(value: unknown): value is OfficeData {
   if (!value || typeof value !== 'object') return false;
-  const d = value as OfficeData;
+  const d = value as Omit<OfficeData, 'version'> & { version: number };
   return (
-    d.version === 1 &&
+    [1, 2].includes(d.version) &&
     Array.isArray(d.rooms) &&
     d.rooms.length > 0 &&
     d.rooms.every(
       (r) =>
+        !!r &&
         typeof r.id === 'string' &&
         typeof r.name === 'string' &&
         Number.isFinite(r.width) &&
@@ -36,16 +39,32 @@ function validData(value: unknown): value is OfficeData {
         Array.isArray(r.objects) &&
         r.objects.every(
           (o) =>
+            !!o &&
             typeof o.id === 'string' &&
             typeof o.name === 'string' &&
             ['desk', 'meeting', 'lounge', 'plant'].includes(o.kind) &&
             [o.x, o.y, o.rotation, o.width, o.height].every(Number.isFinite),
-        ),
+        ) &&
+        (!r.background ||
+          (typeof r.background.assetId === 'string' &&
+            typeof r.background.name === 'string' &&
+            typeof r.background.mime === 'string' &&
+            [
+              r.background.x,
+              r.background.y,
+              r.background.width,
+              r.background.height,
+              r.background.rotation,
+              r.background.opacity,
+            ].every(Number.isFinite) &&
+            r.background.width > 0 &&
+            r.background.height > 0)),
     ) &&
     Array.isArray(d.employees) &&
     d.employees.length > 0 &&
     d.employees.every(
       (e) =>
+        !!e &&
         typeof e.id === 'string' &&
         typeof e.name === 'string' &&
         typeof e.initials === 'string' &&
@@ -55,6 +74,7 @@ function validData(value: unknown): value is OfficeData {
     Array.isArray(d.bookings) &&
     d.bookings.every(
       (b) =>
+        !!b &&
         typeof b.id === 'string' &&
         /^\d{4}-\d{2}-\d{2}$/.test(b.date) &&
         /^\d{2}:\d{2}$/.test(b.start) &&
@@ -67,7 +87,10 @@ function validData(value: unknown): value is OfficeData {
 }
 export class DemoDataProvider implements WorkspaceDataProvider {
   readonly mode = 'demo' as const;
-  constructor(private storage: Pick<Storage, 'getItem' | 'setItem'> = window.localStorage) {}
+  constructor(
+    private storage: Pick<Storage, 'getItem' | 'setItem'> &
+      Partial<Pick<Storage, 'removeItem'>> = window.localStorage,
+  ) {}
   async load(): Promise<OfficeData> {
     const raw = this.storage.getItem(STORAGE_KEY);
     if (raw) {
@@ -79,7 +102,18 @@ export class DemoDataProvider implements WorkspaceDataProvider {
       }
       if (!validData(parsed))
         throw new Error('Die gespeicherten Demo-Daten sind ungültig. Bitte setzen Sie die Demo zurück.');
-      return parsed;
+      const { data, migrated } = migrateOfficeData(parsed);
+      if (migrated) {
+        try {
+          if (!this.storage.getItem(MIGRATION_BACKUP_KEY)) this.storage.setItem(MIGRATION_BACKUP_KEY, raw);
+          await this.save(data);
+        } catch {
+          throw new Error(
+            'Die Datenmigration konnte nicht gespeichert werden. Ihr bisheriger Datenbestand bleibt erhalten. Bitte schaffen Sie Platz im Browserspeicher.',
+          );
+        }
+      }
+      return data;
     }
     return this.reset();
   }
@@ -95,6 +129,7 @@ export class DemoDataProvider implements WorkspaceDataProvider {
   async reset() {
     const data = createSeed();
     await this.save(data);
+    this.storage.removeItem?.(MIGRATION_BACKUP_KEY);
     return data;
   }
 }

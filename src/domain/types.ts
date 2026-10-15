@@ -20,6 +20,31 @@ export interface OfficeRoom {
   width: number;
   height: number;
   objects: PlanObject[];
+  layout?: 'demo' | 'custom';
+  background?: PlanBackground;
+}
+export interface PlanBackground {
+  assetId: string;
+  name: string;
+  mime: string;
+  page?: number;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  rotation: number;
+  opacity: number;
+}
+export interface PlanAsset {
+  id: string;
+  name: string;
+  mime: string;
+  source: Blob;
+  image: Blob;
+  width: number;
+  height: number;
+  page?: number;
+  pageCount?: number;
 }
 export interface Employee {
   id: string;
@@ -40,7 +65,7 @@ export interface Booking {
   createdAt: string;
 }
 export interface OfficeData {
-  version: 1;
+  version: 2;
   rooms: OfficeRoom[];
   employees: Employee[];
   bookings: Booking[];

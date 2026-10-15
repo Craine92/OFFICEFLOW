@@ -2,12 +2,17 @@ import { create } from 'zustand';
 import type { BookingInput, OfficeData, OfficeRoom } from '../domain/types';
 import { validateBooking, today } from '../domain/booking';
 import { DemoDataProvider, type WorkspaceDataProvider } from '../data/provider';
+import { validateRoom } from '../domain/layout';
+import { planAssets } from '../data/assets';
 
 interface OfficeStore {
   data: OfficeData | null;
   error: string | null;
   date: string;
   roomId: string;
+  timeStart: string;
+  timeEnd: string;
+  setTimeWindow: (start: string, end: string) => void;
   initialize: () => Promise<void>;
   setDate: (date: string) => void;
   setRoom: (id: string) => void;
@@ -15,6 +20,7 @@ interface OfficeStore {
   cancel: (id: string) => Promise<void>;
   checkIn: (id: string) => Promise<void>;
   saveRoom: (room: OfficeRoom) => Promise<void>;
+  addRoom: (room: OfficeRoom) => Promise<void>;
   reset: () => Promise<void>;
 }
 let provider: WorkspaceDataProvider;
@@ -41,6 +47,16 @@ export const useOfficeStore = create<OfficeStore>((set, get) => {
     error: null,
     date: today(),
     roomId: 'open',
+    timeStart: '09:00',
+    timeEnd: '18:00',
+    setTimeWindow: (timeStart, timeEnd) => {
+      if (
+        /^([01]\d|2[0-3]):[0-5]\d$/.test(timeStart) &&
+        /^([01]\d|2[0-3]):[0-5]\d$/.test(timeEnd) &&
+        timeStart < timeEnd
+      )
+        set({ timeStart, timeEnd });
+    },
     initialize: async () => {
       try {
         set({ data: await getProvider().load(), error: null });
@@ -77,6 +93,8 @@ export const useOfficeStore = create<OfficeStore>((set, get) => {
       }),
     saveRoom: (room) =>
       transaction((data) => {
+        const error = validateRoom(room, data.rooms);
+        if (error) throw new Error(error);
         const old = data.rooms.find((r) => r.id === room.id);
         if (!old) throw new Error('Dieser Grundriss existiert nicht mehr.');
         const ids = new Set(room.objects.map((o) => o.id));
@@ -85,10 +103,20 @@ export const useOfficeStore = create<OfficeStore>((set, get) => {
         data.rooms = data.rooms.map((r) => (r.id === room.id ? room : r));
         return data;
       }),
+    addRoom: (room) =>
+      transaction((data) => {
+        const error = validateRoom(room, data.rooms);
+        if (error) throw new Error(error);
+        if (data.rooms.some((r) => r.id === room.id))
+          throw new Error('Dieser Bürobereich existiert bereits.');
+        data.rooms.push(room);
+        return data;
+      }),
     reset: () => {
       const task = queue.then(async () => {
         const data = await getProvider().reset();
         set({ data, date: today(), roomId: 'open', error: null });
+        if (getProvider().mode === 'demo' && typeof indexedDB !== 'undefined') await planAssets.clear();
       });
       queue = task.catch(() => {});
       return task;

@@ -19,7 +19,7 @@ export function BookingDialog({
   onClose: () => void;
   onSuccess: (message: string) => void;
 }) {
-  const { data, date, book } = useOfficeStore();
+  const { data, date, book, timeStart, timeEnd } = useOfficeStore();
   const [bookingDate, setBookingDate] = useState(date);
   const [start, setStart] = useState('09:00');
   const [end, setEnd] = useState('18:00');
@@ -34,10 +34,10 @@ export function BookingDialog({
       setRoomId(target.roomId);
       setBookingDate(date);
       setError('');
-      setStart('09:00');
-      setEnd('18:00');
+      setStart(timeStart);
+      setEnd(timeEnd);
     }
-  }, [target, date]);
+  }, [target, date, timeStart, timeEnd]);
   const room = data?.rooms.find((r) => r.id === roomId);
   const object: PlanObject | undefined = room?.objects.find((o) => o.id === objectId);
   const existing =
@@ -68,6 +68,12 @@ export function BookingDialog({
       description="Wählen Sie einen Arbeitsplatz oder Meetingraum und reservieren Sie Ihre Zeit."
     >
       <form onSubmit={submit} className="booking-form">
+        {room && !room.objects.some((o) => ['desk', 'meeting'].includes(o.kind)) && (
+          <p className="form-error">
+            Dieser Bürobereich hat noch keine buchbaren Objekte. Fügen Sie im Raumeditor Arbeitsplätze oder
+            Meetingräume hinzu oder wählen Sie einen anderen Bürobereich.
+          </p>
+        )}
         <div className="booking-resource">
           <div className="resource-icon">
             {object?.kind === 'meeting' ? <Users size={25} /> : <Armchair size={25} />}

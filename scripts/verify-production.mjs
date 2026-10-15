@@ -10,6 +10,8 @@ const prefix = process.env.PRODUCTION_PREFIX || '/officeflow/';
 const mime = {
   '.html': 'text/html',
   '.js': 'application/javascript',
+  '.mjs': 'application/javascript',
+  '.wasm': 'application/wasm',
   '.css': 'text/css',
   '.svg': 'image/svg+xml',
 };
@@ -78,9 +80,60 @@ try {
   await page.setViewportSize({ width: 390, height: 844 });
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
   await page.screenshot({ path: 'docs/screenshots/mobil.png', fullPage: true, animations: 'disabled' });
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.getByRole('link', { name: 'Raumeditor', exact: true }).click();
+  await page.getByRole('button', { name: 'Grundriss importieren', exact: true }).click();
+  await page
+    .getByLabel('Grundrissdatei', { exact: true })
+    .setInputFiles('tests/fixtures/zweiseitiger-grundriss.pdf');
+  await page.getByRole('combobox', { name: 'PDF-Seite', exact: true }).selectOption('2');
+  await page.getByAltText('Vorschau zweiseitiger-grundriss.pdf, Seite 2').waitFor();
+  await page.getByRole('button', { name: 'Weiter', exact: true }).click();
+  await page.getByRole('textbox', { name: 'Name des Bürobereichs', exact: true }).fill('PDF-Etage');
+  await page.screenshot({
+    path: 'docs/screenshots/import-assistent.png',
+    fullPage: false,
+    animations: 'disabled',
+  });
+  await page.getByRole('button', { name: 'Weiter', exact: true }).click();
+  await page.getByRole('button', { name: 'Importieren und speichern', exact: true }).click();
+  await page.locator('.floorplan[data-background-state="ready"]').waitFor();
+  await page.reload();
+  const pdfRoom = await page.evaluate(() =>
+    JSON.parse(localStorage.getItem('officeflow.demo.v1')).rooms.find((r) => r.name === 'PDF-Etage'),
+  );
+  assert.equal(pdfRoom.background.page, 2);
+  await page.getByRole('combobox', { name: 'Grundriss zum Bearbeiten auswählen' }).selectOption(pdfRoom.id);
+  await page.locator('.floorplan[data-background-state="ready"]').waitFor();
+  // Ein eigenes Bild einrichten und auf dem statisch ausgelieferten Plan buchen.
+  await page.getByRole('button', { name: 'Grundriss importieren', exact: true }).click();
+  await page
+    .getByLabel('Grundrissdatei', { exact: true })
+    .setInputFiles('tests/fixtures/buero-grundriss.png');
+  await page.getByRole('button', { name: 'Weiter', exact: true }).click();
+  await page.getByRole('textbox', { name: 'Name des Bürobereichs', exact: true }).fill('Unser Projektbüro');
+  await page.getByRole('button', { name: 'Weiter', exact: true }).click();
+  await page.getByRole('button', { name: 'Importieren und speichern', exact: true }).click();
+  await page.locator('.floorplan[data-background-state="ready"]').waitFor();
+  await page.getByRole('button', { name: 'Arbeitsplatz', exact: true }).click();
+  await page.getByLabel('Bezeichnung', { exact: true }).fill('Projektplatz 01');
+  await page.getByLabel('Position X', { exact: true }).fill('250');
+  await page.getByLabel('Position Y', { exact: true }).fill('330');
+  await page.getByRole('button', { name: 'Grundriss speichern', exact: true }).click();
+  await page.getByRole('status').filter({ hasText: 'lokal gespeichert' }).waitFor();
+  await page.screenshot({ path: 'docs/screenshots/raumeditor.png', fullPage: false, animations: 'disabled' });
+  await page.getByRole('button', { name: 'Neue Buchung' }).click();
+  await page.getByLabel('Mitarbeiter', { exact: true }).selectOption('e22');
+  await page.getByRole('button', { name: 'Verbindlich buchen' }).click();
+  await page.getByRole('status').filter({ hasText: 'Projektplatz 01 wurde erfolgreich gebucht' }).waitFor();
+  await page.reload();
+  assert.equal(
+    await page.evaluate(() => JSON.parse(localStorage.getItem('officeflow.demo.v1')).bookings.length),
+    20,
+  );
   assert.deepEqual(errors, [], 'Browser- oder Asset-Fehler im Produktions-Build');
   console.log(
-    `Produktionsprüfung erfolgreich: ${prefix}, direkter Aufruf, Neuladen, Assets, Buchung, Persistenz und responsive Ansichten.`,
+    `Produktionsprüfung erfolgreich: ${prefix}, direkte Navigation, PDF-Worker und lokale Schriften, PDF-Seite 2, Bildimport, Buchung auf eigenem Plan, Persistenz und responsive Ansichten.`,
   );
 } finally {
   await browser?.close();

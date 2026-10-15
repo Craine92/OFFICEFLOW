@@ -36,7 +36,8 @@ export function SettingsPage({ notify }: { notify: (message: string) => void }) 
         <h2>Einfach ausprobieren.</h2>
         <p>
           Sie arbeiten mit fiktiven Demo-Daten. Buchungen, Grundrisse und Änderungen bleiben lokal in diesem
-          Browser gespeichert.
+          Browser gespeichert. Hochgeladene Originaldateien und Vorschauen liegen in IndexedDB; Buchungen und
+          Planpositionen in localStorage.
         </p>
         <div className="settings-detail">
           <HardDrive size={18} />
@@ -60,6 +61,10 @@ export function SettingsPage({ notify }: { notify: (message: string) => void }) 
           <Download size={16} />
           Demo-Daten exportieren
         </Button>
+        <p className="muted">
+          Der JSON-Export enthält Metadaten und Buchungen, jedoch keine Hintergrunddateien. Bitte bewahren Sie
+          Ihre Originaldateien auf.
+        </p>
       </section>
       <section className="panel settings-card integration-card">
         <span className="settings-icon">
@@ -124,7 +129,7 @@ export function SettingsPage({ notify }: { notify: (message: string) => void }) 
           if (!busy) setConfirm(open);
         }}
         title="Demo vollständig zurücksetzen?"
-        description="Alle eigenen Buchungen und gespeicherten Grundrissänderungen werden gelöscht. Die ursprünglichen Demo-Daten werden für das heutige Datum neu angelegt."
+        description="Alle eigenen Buchungen, Grundrissänderungen und importierten Dateien in IndexedDB werden gelöscht. Die ursprünglichen Demo-Daten werden für das heutige Datum neu angelegt."
       >
         {error && (
           <p role="alert" className="form-error">

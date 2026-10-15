@@ -17,7 +17,7 @@ import {
   Users,
 } from 'lucide-react';
 import { useOfficeStore } from '../store/useOfficeStore';
-import { statusFor, statusLabels, today } from '../domain/booking';
+import { statusFor, statusLabels, today, overlaps } from '../domain/booking';
 import type { BookingTarget } from './BookingDialog';
 import type { WorkspaceStatus } from '../domain/types';
 import { FloorPlan } from './FloorPlan';
@@ -33,24 +33,26 @@ export function WorkspaceView({
   onBook: (target: BookingTarget) => void;
   notify: (message: string) => void;
 }) {
-  const { data, date, roomId, setRoom } = useOfficeStore();
+  const { data, date, roomId, setRoom, timeStart, timeEnd } = useOfficeStore();
   const [filter, setFilter] = useState<WorkspaceStatus | 'all'>('all');
   const [selected, setSelected] = useState<string>();
   if (!data) return null;
   const room = data.rooms.find((r) => r.id === roomId) ?? data.rooms[0];
   const desks = data.rooms.flatMap((r) => r.objects.filter((o) => o.kind === 'desk'));
   const counts = (status: WorkspaceStatus) =>
-    desks.filter((o) => statusFor(data.bookings, o.id, date) === status).length;
+    desks.filter((o) => statusFor(data.bookings, o.id, date, timeStart, timeEnd) === status).length;
   const available = counts('available'),
     occupied = counts('occupied'),
     reserved = counts('reserved');
   const roomDesks = room.objects.filter((o) => o.kind === 'desk');
-  const availableDesks = roomDesks.filter((o) => statusFor(data.bookings, o.id, date) === 'available');
+  const availableDesks = roomDesks.filter(
+    (o) => statusFor(data.bookings, o.id, date, timeStart, timeEnd) === 'available',
+  );
   const meetings = data.rooms.flatMap((r) =>
     r.objects.filter((o) => o.kind === 'meeting').map((o) => ({ ...o, roomId: r.id })),
   );
   const bookingDay = data.bookings
-    .filter((b) => b.date === date)
+    .filter((b) => b.date === date && overlaps(b, { start: timeStart, end: timeEnd }))
     .sort((a, b) => a.start.localeCompare(b.start));
   const selectedObject = room.objects.find((o) => o.id === selected);
   const displayObjects =
@@ -70,7 +72,7 @@ export function WorkspaceView({
             </div>
             <div className="kpi-value">
               {desks.length}
-              <span>über 3 Bürobereiche</span>
+              <span>in {data.rooms.length} Bürobereichen</span>
             </div>
             <div className="kpi-foot">
               <Building2 size={13} />
@@ -90,7 +92,7 @@ export function WorkspaceView({
             </div>
             <div className="kpi-foot">
               <span className="mini-dot available" />
-              {Math.round((available / desks.length) * 100)} % der Arbeitsplätze verfügbar
+              {Math.round((available / Math.max(1, desks.length)) * 100)} % der Arbeitsplätze verfügbar
             </div>
           </article>
           <article className="kpi">
@@ -122,7 +124,7 @@ export function WorkspaceView({
             </div>
             <div className="kpi-foot">
               <span className="mini-dot occupied" />
-              {Math.round((occupied / desks.length) * 100)} % aktuelle Anwesenheit
+              {Math.round((occupied / Math.max(1, desks.length)) * 100)} % aktuelle Anwesenheit
             </div>
           </article>
         </div>
@@ -138,7 +140,7 @@ export function WorkspaceView({
             </div>
             <span className="live-indicator">
               <i />
-              Demo-Grundriss
+              {room.background ? 'Eigener Grundriss' : 'Demo-Grundriss'}
             </span>
           </div>
           <div className="plan-toolbar">
@@ -173,6 +175,8 @@ export function WorkspaceView({
             room={room}
             bookings={data.bookings}
             date={date}
+            timeStart={timeStart}
+            timeEnd={timeEnd}
             selectedId={selected}
             filter={filter}
             onSelect={(o) => {
@@ -196,7 +200,8 @@ export function WorkspaceView({
               </span>
             </div>
             <span>
-              {roomDesks.length} Arbeitsplätze <span className="legend-separator">·</span> {room.area} m²
+              {roomDesks.length} Arbeitsplätze <span className="legend-separator">·</span>{' '}
+              {room.area > 0 ? `${room.area} m²` : 'Eigener Grundriss'}
             </span>
           </div>
         </section>
@@ -220,7 +225,9 @@ export function WorkspaceView({
                   <span className="desk-info">
                     <strong>
                       {o.name}
-                      <span className={`mini-dot ${statusFor(data.bookings, o.id, date)}`} />
+                      <span
+                        className={`mini-dot ${statusFor(data.bookings, o.id, date, timeStart, timeEnd)}`}
+                      />
                     </strong>
                     <span>
                       <Monitor size={11} />
@@ -265,8 +272,12 @@ export function WorkspaceView({
                 <Avatar key={e.id} {...e} small />
               ))}
               <span>
-                {meetings.filter((m) => statusFor(data.bookings, m.id, date) === 'available').length} von{' '}
-                {meetings.length} Räumen frei
+                {
+                  meetings.filter(
+                    (m) => statusFor(data.bookings, m.id, date, timeStart, timeEnd) === 'available',
+                  ).length
+                }{' '}
+                von {meetings.length} Räumen frei
               </span>
             </div>
             <div className="meeting-room-list">
@@ -277,20 +288,25 @@ export function WorkspaceView({
                     <small>{m.capacity} Personen</small>
                   </span>
                   <span>
-                    <i className={`mini-dot ${statusFor(data.bookings, m.id, date)}`} />
-                    {statusLabels[statusFor(data.bookings, m.id, date)]}
+                    <i className={`mini-dot ${statusFor(data.bookings, m.id, date, timeStart, timeEnd)}`} />
+                    {statusLabels[statusFor(data.bookings, m.id, date, timeStart, timeEnd)]}
                   </span>
                 </button>
               ))}
             </div>
             <Button
               variant="ghost"
+              disabled={!meetings.length}
               onClick={() => {
-                setRoom('hybrid');
                 setSelected(undefined);
                 const meeting =
-                  meetings.find((m) => statusFor(data.bookings, m.id, date) === 'available') ?? meetings[0];
-                if (meeting) onBook({ roomId: meeting.roomId, objectId: meeting.id });
+                  meetings.find(
+                    (m) => statusFor(data.bookings, m.id, date, timeStart, timeEnd) === 'available',
+                  ) ?? meetings[0];
+                if (meeting) {
+                  setRoom(meeting.roomId);
+                  onBook({ roomId: meeting.roomId, objectId: meeting.id });
+                }
               }}
             >
               Meetingraum finden
@@ -324,17 +340,19 @@ export function WorkspaceView({
               <h3>Belegung im Überblick</h3>
               <ArrowDownRight size={17} className="muted" />
             </div>
-            <p className="muted">Arbeitsplätze am ausgewählten Tag</p>
+            <p className="muted">
+              Arbeitsplätze von {timeStart} bis {timeEnd} Uhr
+            </p>
             <div className="occupancy-main">
               <div
                 className="donut"
                 style={{
-                  background: `conic-gradient(#548e7a 0deg ${(available / desks.length) * 360}deg, #e3b965 ${(available / desks.length) * 360}deg ${((available + reserved) / desks.length) * 360}deg, #899bbc ${((available + reserved) / desks.length) * 360}deg 360deg)`,
+                  background: `conic-gradient(#548e7a 0deg ${(available / Math.max(1, desks.length)) * 360}deg, #e3b965 ${(available / Math.max(1, desks.length)) * 360}deg ${((available + reserved) / Math.max(1, desks.length)) * 360}deg, #899bbc ${((available + reserved) / Math.max(1, desks.length)) * 360}deg 360deg)`,
                 }}
               >
                 <div>
                   <strong>
-                    {Math.round(((reserved + occupied) / desks.length) * 100)}
+                    {Math.round(((reserved + occupied) / Math.max(1, desks.length)) * 100)}
                     <small>%</small>
                   </strong>
                   <span>gebucht</span>

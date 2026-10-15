@@ -34,6 +34,7 @@ import { EditorPage } from './pages/EditorPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { useOfficeStore } from './store/useOfficeStore';
 import { formatDate, today } from './domain/booking';
+import { TimeWindowPicker } from './components/TimeWindowPicker';
 
 const navigation = [
   { path: '/', label: 'Übersicht', Icon: LayoutDashboard },
@@ -111,7 +112,7 @@ function Shell() {
   const room = data?.rooms.find((r) => r.id === roomId) ?? data?.rooms[0];
   const newBooking = () => {
     const object = room?.objects.find((o) => o.kind === 'desk');
-    if (room && object) setTarget({ roomId: room.id, objectId: object.id });
+    if (room) setTarget({ roomId: room.id, objectId: object?.id ?? '' });
   };
   function shiftDate(days: number) {
     const next = new Date(`${date}T12:00:00`);
@@ -318,6 +319,7 @@ function Shell() {
               )}
             </div>
           </div>
+          {data && ['/', '/raumplanung'].includes(location.pathname) && <TimeWindowPicker />}
           {error ? (
             <section className="panel load-error">
               <h2>Ihre Demo konnte nicht geladen werden.</h2>
@@ -372,7 +374,7 @@ function Shell() {
               OFFICEFLOW<span className="footer-divider">/</span>Mehr Raum. Mehr Möglichkeiten.
             </span>
             <span>
-              Demo-Version 0.1<span className="footer-divider">·</span>Daten bleiben in Ihrem Browser
+              Demo-Version 0.2<span className="footer-divider">·</span>Daten bleiben in Ihrem Browser
             </span>
           </footer>
         </main>
@@ -391,7 +393,7 @@ function Shell() {
               <strong>Lieblingsplatz finden</strong>
               <p>
                 Wechseln Sie zwischen drei Bürobereichen. Grüne Plätze sind frei, gelbe reserviert und blaue
-                belegt. Die Farben beziehen sich auf den ausgewählten Tag.
+                belegt. Die Farben beziehen sich auf das ausgewählte Datum und Zeitfenster.
               </p>
             </div>
           </div>

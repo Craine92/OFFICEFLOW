@@ -150,7 +150,7 @@ export function createSeed(): OfficeData {
     hybrid.objects.find((o) => o.kind === 'meeting')!,
   ];
   return {
-    version: 1,
+    version: 2,
     rooms,
     employees,
     bookings: booked.map((o, i) => ({
