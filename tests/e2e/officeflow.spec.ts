@@ -137,6 +137,9 @@ for (const viewport of [
     page.on('pageerror', (e) => errors.push(e.message));
     await page.goto('/');
     await expect(page.locator('canvas')).toBeVisible();
+    // Arial bildet auf Windows auch die breitere Linux-Ersatzschrift ab.
+    if (viewport.width === 390)
+      await page.addStyleTag({ content: ':root { font-family: Arial, sans-serif !important; }' });
     if (viewport.width === 1440)
       await page.screenshot({ path: 'test-results/officeflow-desktop.png', fullPage: true });
     if (viewport.width === 390)

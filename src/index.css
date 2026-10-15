@@ -1204,6 +1204,7 @@ h3 {
   letter-spacing: 0;
 }
 .table-scroll {
+  position: relative;
   overflow-x: auto;
 }
 .booking-table {

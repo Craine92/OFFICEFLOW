@@ -70,7 +70,7 @@ npm run build
 Remove-Item Env:VITE_BASE_PATH
 ```
 
-Das Ziel-Repository ist [Craine92/OFFICEFLOW](https://github.com/Craine92/OFFICEFLOW). Die vorgesehene Demo-Adresse ist **https://craine92.github.io/OFFICEFLOW/**; der aktuelle Veröffentlichungsstatus ist unter [GitHub Actions](https://github.com/Craine92/OFFICEFLOW/actions) sichtbar.
+Der Quellcode liegt in [Craine92/OFFICEFLOW](https://github.com/Craine92/OFFICEFLOW). Die Demo-Adresse lautet **https://craine92.github.io/OFFICEFLOW/**. GitHub Pages ist öffentlich mit HTTPS und GitHub Actions eingerichtet; den aktuellen Veröffentlichungsstatus zeigt [GitHub Actions](https://github.com/Craine92/OFFICEFLOW/actions).
 
 ## Architektur
 

@@ -40,7 +40,7 @@ Die Browserprüfungen verwenden den installierten Edge auf Windows und Chromium 
 
 ## Offene Punkte
 
-1. **Öffentliches Deployment:** Ziel ist `Craine92/OFFICEFLOW` mit der Demo-Adresse `https://craine92.github.io/OFFICEFLOW/`. Der Workflow ist vollständig vorbereitet; den jeweils aktuellen Veröffentlichungsstatus zeigt GitHub Actions.
+1. **Abnahme der öffentlichen Demo:** Repository `Craine92/OFFICEFLOW` und GitHub Pages mit HTTPS und Actions sind eingerichtet. Die Demo-Adresse lautet `https://craine92.github.io/OFFICEFLOW/`; eine Abnahme mit tatsächlichen Nutzern steht noch aus.
 2. **Mehrbenutzerbetrieb:** localStorage bietet keine gemeinsame Datenbasis, tabübergreifende Sperre, Rollen oder echte Berechtigungen.
 3. **Microsoft 365/SharePoint:** Es bestehen ausschließlich Schnittstellen. Anmeldung, Datenschema, Adapter, Kalenderabgleich und tenantbezogene Berechtigungen fehlen.
 4. **Erweiterte Planung:** Wände zeichnen, Grundrissimport, mehrere Standorte/Etagen, Undo/Redo-Verlauf, Kollisionsvermeidung, Gruppenwahl und bauliche Prüfung sind noch nicht enthalten.
@@ -49,7 +49,7 @@ Die Browserprüfungen verwenden den installierten Edge auf Windows und Chromium 
 
 ## Nächste sinnvolle Schritte
 
-1. Den geprüften Stand auf dem gewünschten GitHub-Repository veröffentlichen und die reale Pages-Adresse auf Desktop und Tablet abnehmen.
+1. Die öffentliche Demo auf Desktop und Tablet mit dem vorgesehenen Team abnehmen.
 2. Mit tatsächlichen Nutzern Buchungszeiten, Filter und Editor-Bedienung testen; anschließend Tages- oder Zeitfensteransicht und wiederkehrende Buchungen priorisieren.
 3. Das gewünschte Microsoft-Datenmodell festlegen: SharePoint-Listen für Grundrisse und Metadaten; eindeutige Zuständigkeit für Buchungen und Ressourcen; gewünschte Mitarbeiterdaten und Rollen klären.
 4. Entra-App-Registrierung mit PKCE und minimalen Berechtigungen vorbereiten. Keine Client-Secrets in Vite-Variablen oder im statischen Build speichern.
