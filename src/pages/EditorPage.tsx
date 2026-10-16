@@ -35,6 +35,8 @@ import {
   Check,
   Plus,
   Scan,
+  CircleHelp,
+  ArrowRight,
 } from 'lucide-react';
 import { CatalogPanel } from '../components/editor/CatalogPanel';
 import { FloorPlan } from '../components/FloorPlan';
@@ -118,13 +120,14 @@ export function EditorPage({
     [saving, setSaving] = useState(false),
     [importOpen, setImportOpen] = useState(false),
     [preview, setPreview] = useState(false),
-    [tab, setTab] = useState<'catalog' | 'properties' | 'layers' | 'plan'>('catalog'),
+    [tab, setTab] = useState<'catalog' | 'properties' | 'layers' | 'plan'>('properties'),
     [category, setCategory] = useState('Alle'),
     [context, setContext] = useState(false),
     [calibration, setCalibration] = useState<{ start: Point; end: Point }>(),
     [meters, setMeters] = useState('5'),
     [newOpen, setNewOpen] = useState(false),
-    [newName, setNewName] = useState('Neue Büroetage');
+    [newName, setNewName] = useState('Neue Büroetage'),
+    [tourOpen, setTourOpen] = useState(false);
   const clipboard = useRef<{ room: OfficeRoom; ids: string[] } | undefined>(undefined);
   useEffect(() => {
     const r = useOfficeStore.getState().data?.rooms.find((r) => r.id === roomId);
@@ -418,6 +421,10 @@ export function EditorPage({
           <i />
           {dirty ? 'Ungespeicherte Änderungen' : 'Alle Änderungen gespeichert'}
         </span>
+        <Button variant="ghost" onClick={() => setTourOpen(true)}>
+          <CircleHelp size={16} />
+          Kurztour
+        </Button>
         <Button
           variant="outline"
           onClick={() => {
@@ -574,20 +581,22 @@ export function EditorPage({
               </button>
             ))}
             <span />
-            <button title="Möbelkatalog" aria-label="Möbelkatalog" onClick={() => setTab('catalog')}>
+            <button title="Möbelkatalog" aria-label="Möbelkatalog" onClick={() => setCategory('Alle')}>
               <Armchair size={20} />
             </button>
             <button
               title="Architekturbauteile"
               aria-label="Architekturbauteile"
               onClick={() => {
-                setTab('catalog');
                 setCategory('Gebäude');
               }}
             >
               <Building2 size={20} />
             </button>
           </nav>
+          <aside className="designer-catalog-rail">
+            <CatalogPanel onAdd={add} initialCategory={category} notify={notify} />
+          </aside>
           <section className="designer-canvas">
             <FloorPlan
               room={draft}
@@ -655,13 +664,12 @@ export function EditorPage({
           </section>
           <aside className="designer-inspector">
             <div className="inspector-tabs">
-              {(['catalog', 'properties', 'layers', 'plan'] as const).map((id, i) => (
+              {(['properties', 'layers', 'plan'] as const).map((id, i) => (
                 <button key={id} className={tab === id ? 'active' : ''} onClick={() => setTab(id)}>
-                  {['Katalog', 'Eigenschaften', 'Ebenen', 'Plan'][i]}
+                  {['Eigenschaften', 'Ebenen', 'Plan'][i]}
                 </button>
               ))}
             </div>
-            {tab === 'catalog' && <CatalogPanel onAdd={add} initialCategory={category} notify={notify} />}
             {tab === 'properties' && (
               <div className="inspector-section">
                 <div className="inspector-heading">
@@ -1250,6 +1258,54 @@ export function EditorPage({
           </aside>
         </div>
       </fieldset>
+      <Dialog
+        open={tourOpen}
+        onOpenChange={setTourOpen}
+        title="In fünf Schritten zum fertigen Grundriss"
+        description="Eine kurze Orientierung für den OFFICEFLOW Raumeditor. Sie können jederzeit schließen und direkt weiterarbeiten."
+      >
+        <div className="editor-tour">
+          {[
+            [
+              '01',
+              'Grundriss wählen oder importieren',
+              'Starten Sie mit einer vorhandenen Etage, einer Bild-/PDF-Datei oder einem leeren Plan.',
+            ],
+            [
+              '02',
+              'Wände und Räume gestalten',
+              'Zeichenwerkzeuge links, Raster und intelligente Fangpunkte sorgen für saubere Geometrie.',
+            ],
+            [
+              '03',
+              'Arbeitsplätze hinzufügen',
+              'Ziehen Sie passende Objekte aus der Bibliothek in Ihre Arbeitswelt oder fügen Sie sie per Klick ein.',
+            ],
+            [
+              '04',
+              'Ressourcen konfigurieren',
+              'Auswahl anklicken und rechts Name, Ausstattung, Kapazität und Raumzuordnung pflegen.',
+            ],
+            [
+              '05',
+              'Speichern und präsentieren',
+              'Prüfen Sie die Benutzeransicht, speichern Sie bewusst und öffnen Sie den Präsentationsmodus.',
+            ],
+          ].map(([number, title, copy]) => (
+            <div key={number}>
+              <span>{number}</span>
+              <div>
+                <strong>{title}</strong>
+                <p>{copy}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+        <Button className="w-full" onClick={() => setTourOpen(false)}>
+          Editor erkunden
+          <ArrowRight size={16} />
+        </Button>
+      </Dialog>
       <ImportWizard
         open={importOpen}
         onClose={() => setImportOpen(false)}

@@ -5,12 +5,13 @@ import { LAYER_IDS } from '../domain/design';
 
 export interface WorkspaceDataProvider {
   readonly mode: 'demo' | 'microsoft-graph';
+  readonly readOnly?: boolean;
   load(): Promise<OfficeData>;
   save(data: OfficeData): Promise<void>;
   reset(): Promise<OfficeData>;
 }
-// Vertragsentwurf für einen späteren Graph-Adapter. Authentifizierung und serverseitige
-// Konfliktkontrolle müssen vor produktiver Nutzung implementiert werden.
+// Der produktive Adapter implementiert die lesenden Methoden. Schreibmethoden bleiben
+// bis zur serverseitigen atomaren Konfliktkontrolle Teil des Vertrags, werfen aber bewusst.
 export interface MicrosoftGraphGateway {
   listRooms(): Promise<OfficeRoom[]>;
   listEmployees(): Promise<Employee[]>;
@@ -23,7 +24,7 @@ export const STORAGE_KEY = 'officeflow.demo.v1';
 export const MIGRATION_BACKUP_KEY = 'officeflow.demo.backup.v1';
 export const V2_BACKUP_KEY = 'officeflow.demo.backup.v2';
 export const REPAIR_BACKUP_KEY = 'officeflow.demo.backup.v3';
-function validData(value: unknown): value is OfficeData {
+export function validData(value: unknown): value is OfficeData {
   if (!value || typeof value !== 'object') return false;
   const d = value as Omit<OfficeData, 'version'> & { version: number };
   return (
@@ -122,6 +123,7 @@ function validData(value: unknown): value is OfficeData {
 }
 export class DemoDataProvider implements WorkspaceDataProvider {
   readonly mode = 'demo' as const;
+  readonly readOnly = false;
   constructor(
     private storage: Pick<Storage, 'getItem' | 'setItem'> &
       Partial<Pick<Storage, 'removeItem'>> = window.localStorage,

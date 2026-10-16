@@ -14,6 +14,19 @@ function storage() {
   };
 }
 describe('Demo-Datenanbieter und Zustand', () => {
+  it('lädt einen lokalen 0.4-Datenbestand unverändert und ergänzt keine Showcase-Vorlagen', async () => {
+    const local = storage();
+    const previous = createSeed();
+    previous.rooms = previous.rooms.filter((room) => room.id !== 'demo-showcase-hq');
+    const raw = JSON.stringify(previous);
+    local.setItem(STORAGE_KEY, raw);
+
+    const loaded = await new DemoDataProvider(local).load();
+
+    expect(loaded.rooms).toHaveLength(3);
+    expect(loaded).toEqual(previous);
+    expect(local.getItem(STORAGE_KEY)).toBe(raw);
+  });
   it('migriert Version 1 verlustfrei und behält eine unveränderte Sicherung', async () => {
     const local = storage(),
       original = { ...createSeed(), version: 1 };
@@ -122,7 +135,7 @@ describe('Demo-Datenanbieter und Zustand', () => {
     await expect(provider.load()).rejects.toThrow('beschädigt');
     expect(local.getItem(STORAGE_KEY)).toBe('{broken');
     await provider.reset();
-    expect((await provider.load()).rooms).toHaveLength(3);
+    expect((await provider.load()).rooms).toHaveLength(4);
   });
   it('meldet Speicherausfälle und zeigt keine ungespeicherte Buchung als erfolgreich', async () => {
     const local = storage();

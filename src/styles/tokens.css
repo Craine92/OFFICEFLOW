@@ -1,4 +1,4 @@
-/* OFFICEFLOW 0.3 — zentrale semantische Gestaltungstoken */
+/* OFFICEFLOW 0.5 — zentrale semantische Gestaltungstoken */
 :root {
   --font-ui: 'Inter Variable', 'Segoe UI', sans-serif;
   --space-1: 4px;
@@ -19,12 +19,12 @@
   --radius-md: 9px;
   --radius-lg: 14px;
   --radius-xl: 18px;
-  --bg: #f3f5f8;
+  --bg: #f2f5f7;
   --panel: #fff;
   --text: #253545;
   --muted: #788795;
-  --border: #e2e7ed;
-  --soft: #f5f7f9;
+  --border: #dfe6eb;
+  --soft: #f4f7f8;
   --accent: #237a7d;
   --accent-hover: #1b6468;
   --accent-soft: #e7f2f1;
@@ -42,8 +42,10 @@
   --reserved-text: #987230;
   --occupied-bg: #edf1f9;
   --occupied-text: #617da5;
-  --shadow-card: 0 2px 5px #182f4203, 0 6px 18px #182f4203;
-  --shadow-float: 0 14px 45px #10283f24;
+  --shadow-card: 0 1px 2px #10283f08, 0 10px 30px #10283f07;
+  --shadow-hover: 0 12px 38px #10283f12;
+  --shadow-float: 0 18px 58px #10283f24;
+  --focus-ring: 0 0 0 3px #237a7d2f;
 }
 [data-theme='dark'] {
   --bg: #101b29;
@@ -64,6 +66,8 @@
   --reserved-text: #d7bd89;
   --occupied-bg: #2b3c54;
   --occupied-text: #b4c5de;
-  --shadow-card: 0 3px 14px #0000000c;
+  --shadow-card: 0 3px 18px #0000001f;
+  --shadow-hover: 0 14px 42px #0000002e;
+  --focus-ring: 0 0 0 3px #5ba6a64a;
   color-scheme: dark;
 }

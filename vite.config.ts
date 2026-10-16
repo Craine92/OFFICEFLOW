@@ -11,7 +11,11 @@ export default defineConfig({
   build: {
     rollupOptions: {
       output: {
-        manualChunks: { canvas: ['konva', 'react-konva'], react: ['react', 'react-dom', 'react-router-dom'] },
+        manualChunks: {
+          canvas: ['konva', 'react-konva'],
+          icons: ['lucide-react'],
+          react: ['react', 'react-dom', 'react-router-dom'],
+        },
       },
     },
   },

@@ -8,6 +8,7 @@ import { planAssets } from '../data/assets';
 interface OfficeStore {
   data: OfficeData | null;
   error: string | null;
+  providerMode: WorkspaceDataProvider['mode'];
   date: string;
   roomId: string;
   timeStart: string;
@@ -29,10 +30,17 @@ export function configureDataProvider(next: WorkspaceDataProvider) {
   provider = next;
 }
 const getProvider = () => (provider ??= new DemoDataProvider());
+export function getConfiguredDataProvider() {
+  return getProvider();
+}
 
 export const useOfficeStore = create<OfficeStore>((set, get) => {
   const transaction = (modify: (data: OfficeData) => OfficeData) => {
     const task = queue.then(async () => {
+      if (getProvider().readOnly)
+        throw new Error(
+          'Microsoft 365 ist derzeit schreibgeschützt. Sichere Mehrbenutzerbuchungen sind noch nicht freigegeben.',
+        );
       const current = get().data;
       if (!current) throw new Error('Die Daten werden noch geladen.');
       const next = modify(structuredClone(current));
@@ -45,6 +53,7 @@ export const useOfficeStore = create<OfficeStore>((set, get) => {
   return {
     data: null,
     error: null,
+    providerMode: 'demo',
     date: today(),
     roomId: 'open',
     timeStart: '09:00',
@@ -59,7 +68,8 @@ export const useOfficeStore = create<OfficeStore>((set, get) => {
     },
     initialize: async () => {
       try {
-        set({ data: await getProvider().load(), error: null });
+        const active = getProvider();
+        set({ data: await active.load(), error: null, providerMode: active.mode });
       } catch (e) {
         set({ error: (e as Error).message });
       }

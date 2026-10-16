@@ -59,7 +59,20 @@ async function execute<T>(
 }
 export const planAssets = {
   get: (id: string) => execute<PlanAsset | undefined>('readonly', (store) => store.get(id)),
+  all: () => execute<PlanAsset[]>('readonly', (store) => store.getAll()),
   put: (asset: PlanAsset) => execute('readwrite', (store) => store.put(asset)),
   remove: (id: string) => execute('readwrite', (store) => store.delete(id)),
   clear: () => execute('readwrite', (store) => store.clear()),
+  replaceAll: async (assets: PlanAsset[]) => {
+    const db = await openDatabase();
+    await new Promise<void>((resolve, reject) => {
+      const transaction = db.transaction('assets', 'readwrite');
+      const store = transaction.objectStore('assets');
+      store.clear();
+      for (const asset of assets) store.put(asset);
+      transaction.oncomplete = () => resolve();
+      transaction.onerror = transaction.onabort = () =>
+        reject(new Error('Die Grundrissdateien konnten nicht vollständig wiederhergestellt werden.'));
+    });
+  },
 };

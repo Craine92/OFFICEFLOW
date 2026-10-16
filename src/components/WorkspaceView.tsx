@@ -11,6 +11,10 @@ import {
   Plus,
   Users,
   Presentation,
+  Search,
+  SlidersHorizontal,
+  CheckCircle2,
+  Clock3,
 } from 'lucide-react';
 import { useOfficeStore } from '../store/useOfficeStore';
 import { statusFor, statusLabels } from '../domain/booking';
@@ -25,12 +29,27 @@ export function WorkspaceView({ onBook }: { onBook: (target: BookingTarget) => v
   const { data, date, roomId, setRoom, timeStart, timeEnd } = useOfficeStore();
   const [filter, setFilter] = useState<WorkspaceStatus | 'all'>('all');
   const [selected, setSelected] = useState<string>();
+  const [query, setQuery] = useState('');
+  const [equipment, setEquipment] = useState('all');
   if (!data) return null;
   const room = data.rooms.find((r) => r.id === roomId) ?? data.rooms[0];
   const roomDesks = room.objects.filter((o) => o.kind === 'desk');
   const availableDesks = roomDesks.filter(
     (o) => statusFor(data.bookings, o.id, date, timeStart, timeEnd) === 'available',
   );
+  const equipmentOptions = [...new Set(room.objects.flatMap((object) => object.equipment ?? []))].sort();
+  const matchingObjects = room.objects.filter((object) => {
+    const status = statusFor(data.bookings, object.id, date, timeStart, timeEnd);
+    return (
+      (filter === 'all' || status === filter) &&
+      (equipment === 'all' || object.equipment?.includes(equipment)) &&
+      (!query.trim() ||
+        `${object.name} ${(object.equipment ?? []).join(' ')}`
+          .toLocaleLowerCase('de-DE')
+          .includes(query.trim().toLocaleLowerCase('de-DE')))
+    );
+  });
+  const highlightIds = new Set(matchingObjects.map((object) => object.id));
   const meetings = data.rooms.flatMap((r) =>
     r.objects.filter((o) => o.kind === 'meeting').map((o) => ({ ...o, roomId: r.id })),
   );
@@ -38,7 +57,13 @@ export function WorkspaceView({ onBook }: { onBook: (target: BookingTarget) => v
   const displayObjects =
     selectedObject && ['desk', 'meeting'].includes(selectedObject.kind)
       ? [selectedObject]
-      : availableDesks.slice(0, 5);
+      : matchingObjects.filter((object) => object.kind === 'desk').slice(0, 5);
+  const selectedStatus = selectedObject
+    ? statusFor(data.bookings, selectedObject.id, date, timeStart, timeEnd)
+    : undefined;
+  const selectedBookings = selectedObject
+    ? data.bookings.filter((booking) => booking.objectId === selectedObject.id && booking.date === date)
+    : [];
   return (
     <>
       <div className="workspace-grid workspace-grid-full">
@@ -77,6 +102,28 @@ export function WorkspaceView({ onBook }: { onBook: (target: BookingTarget) => v
                 </button>
               ))}
             </div>
+            <label className="plan-search">
+              <Search size={14} />
+              <input
+                aria-label="Arbeitsplatz suchen"
+                placeholder="Platz oder Ausstattung suchen"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+              />
+            </label>
+            <select
+              className="status-select equipment-select"
+              aria-label="Nach Ausstattung filtern"
+              value={equipment}
+              onChange={(event) => setEquipment(event.target.value)}
+            >
+              <option value="all">Alle Ausstattungen</option>
+              {equipmentOptions.map((entry) => (
+                <option value={entry} key={entry}>
+                  {entry}
+                </option>
+              ))}
+            </select>
             <select
               className="status-select"
               aria-label="Arbeitsplätze nach Status filtern"
@@ -97,9 +144,9 @@ export function WorkspaceView({ onBook }: { onBook: (target: BookingTarget) => v
             timeEnd={timeEnd}
             selectedId={selected}
             filter={filter}
+            highlightIds={query || equipment !== 'all' ? highlightIds : undefined}
             onSelect={(o) => {
               setSelected(o.id);
-              onBook({ roomId: room.id, objectId: o.id });
             }}
           />
           <div className="plan-legend">
@@ -120,6 +167,10 @@ export function WorkspaceView({ onBook }: { onBook: (target: BookingTarget) => v
             <span>
               {roomDesks.length} Arbeitsplätze <span className="legend-separator">·</span> {planArea(room)}
             </span>
+            <span className="match-count">
+              <SlidersHorizontal size={13} />
+              {matchingObjects.length} passende Ressourcen
+            </span>
           </div>
         </section>
         <aside className="workspace-aside">
@@ -129,13 +180,44 @@ export function WorkspaceView({ onBook }: { onBook: (target: BookingTarget) => v
               <span className="count-pill">{availableDesks.length} frei</span>
             </div>
             <p className="muted aside-description">{room.name} · Alles bereit für Ihren Tag.</p>
+            {selectedObject && (
+              <div className="resource-detail-card">
+                <div className="resource-detail-title">
+                  <span className="desk-icon">
+                    <Armchair size={20} />
+                  </span>
+                  <div>
+                    <strong>{selectedObject.name}</strong>
+                    <span className={`resource-status ${selectedStatus}`}>
+                      <i className={`mini-dot ${selectedStatus}`} />
+                      {selectedStatus ? statusLabels[selectedStatus] : ''}
+                    </span>
+                  </div>
+                </div>
+                <div className="resource-detail-facts">
+                  <span>
+                    <Monitor size={14} />
+                    {selectedObject.equipment?.join(' · ') || 'Standardausstattung'}
+                  </span>
+                  <span>
+                    <Clock3 size={14} />
+                    {selectedBookings.length
+                      ? selectedBookings.map((booking) => `${booking.start}–${booking.end}`).join(', ')
+                      : 'Heute noch keine Buchung'}
+                  </span>
+                </div>
+                <Button
+                  className="w-full"
+                  onClick={() => onBook({ roomId: room.id, objectId: selectedObject.id })}
+                >
+                  <CheckCircle2 size={16} />
+                  Zeitraum prüfen und buchen
+                </Button>
+              </div>
+            )}
             <div className="desk-suggestions">
               {displayObjects.map((o) => (
-                <button
-                  key={o.id}
-                  className="desk-suggestion"
-                  onClick={() => onBook({ roomId: room.id, objectId: o.id })}
-                >
+                <button key={o.id} className="desk-suggestion" onClick={() => setSelected(o.id)}>
                   <span className="desk-icon">
                     <Armchair size={20} />
                   </span>
@@ -165,6 +247,7 @@ export function WorkspaceView({ onBook }: { onBook: (target: BookingTarget) => v
             <Button
               variant="outline"
               className="w-full"
+              disabled={!selectedObject && !availableDesks.length}
               onClick={() =>
                 onBook({
                   roomId: room.id,
@@ -172,7 +255,7 @@ export function WorkspaceView({ onBook }: { onBook: (target: BookingTarget) => v
                 })
               }
             >
-              {selectedObject ? 'Auswahl buchen' : 'Arbeitsplatz buchen'}
+              {selectedObject ? 'Auswahl buchen' : 'Nächsten freien Platz buchen'}
               <ArrowRight size={14} />
             </Button>
           </section>

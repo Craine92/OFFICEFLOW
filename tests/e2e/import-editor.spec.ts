@@ -148,6 +148,7 @@ test('PNG importieren, drehen, Arbeitsplätze einrichten, rückgängig machen un
     box.x + (box.width - room.width * scale) / 2 + 400 * scale,
     box.y + (box.height - room.height * scale) / 2 + 300 * scale,
   );
+  await page.getByRole('button', { name: 'Zeitraum prüfen und buchen' }).click();
   await expect(page.getByRole('dialog')).toBeVisible();
   await expect(page.getByLabel('Arbeitsplatz / Raum', { exact: true })).toHaveValue(room.objects[0].id);
   await page.getByLabel('Mitarbeiter', { exact: true }).selectOption('e22');
@@ -264,7 +265,7 @@ test('Hintergrund ersetzen erhält gebuchte Objekte und alle Termine', async ({ 
   await page.getByRole('button', { name: 'Importieren und speichern', exact: true }).click();
   await expect(page.locator('.floorplan')).toHaveAttribute('data-background-state', 'ready');
   const after = await data(page);
-  expect(after.rooms).toHaveLength(3);
+  expect(after.rooms).toHaveLength(4);
   expect(after.bookings).toEqual(before.bookings);
   expect(after.rooms[0].objects).toEqual(before.rooms[0].objects);
 });
@@ -332,7 +333,7 @@ test('Vollständiger Demo-Reset entfernt auch importierte Originaldateien aus In
       }),
   );
   expect(count).toBe(0);
-  expect((await data(page)).rooms).toHaveLength(3);
+  expect((await data(page)).rooms).toHaveLength(4);
 });
 
 test('Überschneidungen, Größenänderung, Raster und Undo/Redo', async ({ page }) => {
@@ -369,6 +370,7 @@ test('Zeitfenster gibt einen vormittags belegten Platz am Nachmittag frei', asyn
   await page.getByLabel('Verfügbarkeit von', { exact: true }).fill('13:00');
   await expect(page.getByRole('button', { name: 'EB-01', exact: false })).toBeVisible();
   await page.getByRole('button', { name: 'EB-01', exact: false }).click();
+  await page.getByRole('button', { name: 'Zeitraum prüfen und buchen' }).click();
   await expect(page.getByLabel('Von', { exact: true })).toHaveValue('13:00');
   await expect(page.getByLabel('Bis', { exact: true })).toHaveValue('14:00');
   await expect(page.getByText(/09:00–13:00 Uhr/)).toBeVisible();

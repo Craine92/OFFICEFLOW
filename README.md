@@ -1,10 +1,10 @@
-# OFFICEFLOW 0.3
+# OFFICEFLOW 0.5
 
-**Ihr Büro. Besser organisiert.** Eine vollständig deutschsprachige, statische Demo für visuelle Büro-, Arbeitsplatz- und Raumplanung.
+**Ihr Büro. Besser organisiert.** Eine vollständig deutschsprachige Büro-, Arbeitsplatz- und Raumplanung mit lokaler Demo und optionaler, lesender Microsoft-365-/SharePoint-Anbindung.
 
 **[Öffentliche Demo](https://craine92.github.io/OFFICEFLOW/)** · [Raumeditor öffnen](https://craine92.github.io/OFFICEFLOW/#/editor)
 
-Neu in 0.3: ein durchgängiges Enterprise-Design, ein vollständiger Vektoreditor mit Wänden und Wandöffnungen, Gebäudebauteilen, detailliertem Möbelkatalog, Gruppen, Ebenen und Maßstab sowie drei neue Präsentationsetagen. Bild-/PDF-Import, IndexedDB und sämtliche Buchungsfunktionen bleiben erhalten.
+Neu in 0.5: eine visuell und inhaltlich neu strukturierte Premium-Oberfläche, sechs echte Dashboard-Kennzahlen, eine große interaktive Etagenansicht, Ressourcenrecherche vor der Buchung, ein dauerhaft sichtbarer Editor-Katalog, ein geführter Kurzeinstieg und eine eigenständige Showcase-Galerie mit drei detailreichen Büroetagen. Alle 0.4-Funktionen einschließlich der optionalen, lesenden Microsoft-365-Anbindung bleiben erhalten.
 
 ![OFFICEFLOW Dashboard](docs/screenshots/desktop.png)
 
@@ -22,7 +22,7 @@ Die ausgegebene Adresse öffnen, standardmäßig **http://127.0.0.1:5173**.
 ```powershell
 npm test                  # Buchungsregeln, Speicherung, Transaktionen und Geometrie
 npm run test:e2e          # Browserprüfungen einschließlich visueller Vergleiche
-npm run test:visual       # Nur die drei visuellen Regressionstests
+npm run test:visual       # Die fünf visuellen Regressionstests
 npm run build             # TypeScript-Prüfung und statischer Produktions-Build
 npm run preview           # Produktions-Build lokal ansehen
 npm run verify:production # Statischen Build unter /officeflow/ prüfen; erzeugt Bildschirmfotos
@@ -33,15 +33,37 @@ Unter Windows nutzen die Browserprüfungen den installierten Microsoft Edge im H
 ## In der Demo ausprobieren
 
 1. In der **Übersicht** Datum und das gewünschte **Zeitfenster** auswählen. Kennzahlen, Belegungsdiagramm und Grundriss beziehen sich auf genau diesen Zeitraum und alle Bürobereiche.
-2. Im Grundriss zwischen **Open Space**, **Einzelbüro** und **Hybrid Office** wechseln. Arbeitsplätze und Meetingräume anklicken; alternativ über **Neue Buchung** und die Auswahllisten buchen.
+2. Im Grundriss zwischen **Open Space**, **Einzelbüro**, **Hybrid Office** und der hochwertigen **Nordlicht-HQ-Demo** wechseln. Eine Ressource anklicken, Ausstattung und Tagesbelegung prüfen und erst dann den Buchungsdialog öffnen.
 3. Datum, Zeitraum und Mitarbeiter auswählen. Konflikte für denselben Platz oder Mitarbeiter werden verhindert; direkt angrenzende Termine sind möglich.
 4. Unter **Buchungen** suchen, nach Büro filtern, Termine exportieren, Anwesenheit bestätigen oder Buchungen nach Bestätigung stornieren.
 5. Im **Raumeditor** einen eigenen Grundriss importieren oder einen vorhandenen bearbeiten. Objekte hinzufügen, verschieben, drehen, skalieren und benennen; Ausstattung und Meetingkapazität konfigurieren. **Grundriss speichern** übernimmt den Entwurf in die normale Ansicht. Gebuchte Objekte lassen sich erst nach Stornierung ihrer Buchungen löschen.
-6. Unter **Einstellungen** Metadaten und Buchungen als JSON exportieren oder mit **Demo zurücksetzen** den vollständigen Ausgangsstand neu anlegen, einschließlich Löschen aller importierten Dateien.
+6. In der **Showcase-Galerie** drei unveränderliche Etagen erkunden. **Als eigene Kopie übernehmen** erzeugt neue Raum-, Objekt-, Wand-, Zonen- und Gruppen-IDs; bestehende Buchungen und Dateien bleiben unberührt.
+7. Unter **Einstellungen** eine vollständige, integritätsgeprüfte Sicherung inklusive importierter Dateien exportieren beziehungsweise nach Vorschau wieder einspielen oder mit **Demo zurücksetzen** den Ausgangsstand neu anlegen.
+
+## Microsoft 365 verbinden
+
+Die GitHub-Pages-Demo startet immer ohne Anmeldung im lokalen Demo-Modus. Erst eine vollständige öffentliche App-Konfiguration und eine bewusste Aktion im Einrichtungsassistenten aktivieren Microsoft 365. Im Microsoft-Modus stammen Etagen, Ressourcen, Personen und Buchungsmetadaten ausschließlich aus den verbundenen SharePoint-Listen; lokale Demo-Buchungen werden nie eingeblendet.
+
+1. Eine Microsoft-Entra-SPA-App registrieren und die verwendete OFFICEFLOW-URL als Redirect-URI hinterlegen.
+2. Delegierte Berechtigungen `User.Read` und `Sites.Read.All` konfigurieren und gemäß Tenant-Richtlinie zustimmen lassen.
+3. Die Werte `VITE_MS_TENANT_ID`, `VITE_MS_CLIENT_ID` und optional `VITE_MS_REDIRECT_URI` beim Build setzen. Client-Secrets gehören nicht in eine SPA und werden von OFFICEFLOW nicht gelesen.
+4. Unter **Einstellungen → Integrationen** anmelden, Site-ID und Listen-IDs eintragen, Datenquellen prüfen und die schreibgeschützte Unternehmensvorschau öffnen.
+
+Das vollständige SharePoint-Schema, Feldzuordnungen, Fehlerverhalten und die Test-Tenant-Einrichtung stehen im [Microsoft-365-Administrationsleitfaden](docs/MICROSOFT-365-INTEGRATION.md). Ohne autorisierten Test-Tenant bestätigen die automatisierten Tests ausschließlich Adapterverhalten mit API-Mocks, keine erfolgreiche Live-Verbindung.
 
 Grün bedeutet im ausgewählten Zeitfenster verfügbar, Gelb reserviert und Blau durch bestätigte Anwesenheit belegt. Eine Buchung von 09:00 bis 13:00 blockiert den Platz **nicht** für 13:00 bis 18:00. Teilweise Überschneidungen zählen als gebucht; direkt angrenzende Termine sind erlaubt. Der Buchungsdialog übernimmt das gewählte Zeitfenster und zeigt Mitarbeiter und alle Buchungszeiten des Platzes am gewählten Tag. Anwesenheit wird für heutige Termine manuell bestätigt, ohne Live-Erkennung.
 
-Die Demo enthält **42 Arbeitsplätze**, **2 Meetingräume**, eine Lounge, **22 fiktive Mitarbeiter**, 5 Abteilungen und 19 initiale Buchungen. Daten werden beim ersten Start für das aktuelle Datum in der Zeitzone **Europe/Berlin** erzeugt. Bereits gespeicherte Termine behalten ihr Datum; für einen neuen Demo-Tag die Datumsauswahl verwenden oder die Demo zurücksetzen.
+Ein frischer Demo-Datenbestand enthält **106 Arbeitsplätze**, **5 Meetingräume**, **22 fiktive Mitarbeiter**, 5 Abteilungen und 19 initiale Buchungen. Die drei getrennten Showcase-Vorlagen umfassen zusätzlich **140 Arbeitsplätze** und 7 Meetingräume, zählen aber erst nach einer bewussten Kopie zum eigenen Datenbestand. Daten werden beim ersten Start für das aktuelle Datum in der Zeitzone **Europe/Berlin** erzeugt. Bereits gespeicherte Termine behalten ihr Datum; für einen neuen Demo-Tag die Datumsauswahl verwenden oder die Demo zurücksetzen.
+
+## Showcase-Galerie
+
+![OFFICEFLOW Showcase](docs/screenshots/showcase.png)
+
+- **Nordlicht Headquarters:** rund 60 Arbeitsplätze, Geschäftsleitung, Team- und Open-Space-Flächen, drei Konferenzräume, Fokusbereich, Küche, Sanitär, zwei Aufzüge und Treppe.
+- **Creative Campus:** 40 flexible Arbeitsplätze, Workshop- und Projekträume, Quiet Library, Lounge, Community Kitchen und Erschließungskern.
+- **Business Center:** 36 Arbeitsplätze, klassische Büros, Empfang, Boardroom, Archiv, Technik und Sanitär.
+
+Die Galerie wird aus statischen, versionierten Vorlagen aufgebaut und bleibt deshalb auch mit alten lokalen Daten oder im lesenden Microsoft-Modus sichtbar. Kopieren ist nur im lokalen Demo-Modus möglich. Die Vorlagen enthalten keine importierten Binärdateien und verändern keine vorhandenen Ressourcenreferenzen.
 
 ## Einen eigenen Grundriss einrichten
 
@@ -127,9 +149,10 @@ Der Quellcode liegt in [Craine92/OFFICEFLOW](https://github.com/Craine92/OFFICEF
 src/
   components/       Oberfläche, Grundriss, Buchungsdialog und Tabelle
     ui/             shadcn/ui-Bausteine auf Radix: Button und Dialog
-  pages/            Buchungen, Mitarbeiter, Raumeditor und Einstellungen
+  pages/            Showcase, Präsentation, Buchungen, Mitarbeiter, Raumeditor und Einstellungen
   domain/           Datenmodelle, Buchungsregeln, Status und Grundrissgeometrie
-  data/             Datenanbieter, Migration, IndexedDB, Datei-/PDF-Verarbeitung
+  data/             Datenanbieter, Showcase-Vorlagen, Migration, IndexedDB, Datei-/PDF-Verarbeitung
+  integrations/     MSAL, Graph-Client, SharePoint-Mapping und Betriebsartsteuerung
   hooks/            Entwurfshistorie und lokales Laden von Hintergrundbildern
   store/            Zustand-Store und serialisierte Schreibtransaktionen
   styles/           Zentrale Design-Tokens und Enterprise-Oberfläche
@@ -143,13 +166,13 @@ docs/               Entwicklungsstand, Architekturhinweise und Bildschirmfotos
 
 Technik: React 19, TypeScript, Vite, Tailwind CSS 4, shadcn/ui-Muster und Radix Dialog, Lucide, React Konva, Zustand und PDF.js. PDF-Code und Worker werden erst bei einem PDF-Import geladen. Der `postinstall`-Schritt kopiert Schriften, CMaps, Decoder und Lizenz von PDF.js nach `public/pdfjs/`; Vite veröffentlicht sie mit dem Build. Es werden keine externen CDNs benötigt. Nach Änderungen an der PDF.js-Abhängigkeit `npm install` oder `npm run postinstall` ausführen.
 
-### Datenzugriff und spätere Microsoft-Anbindung
+### Datenzugriff und Microsoft-Anbindung
 
-`WorkspaceDataProvider` definiert `load`, `save` und `reset`. `DemoDataProvider` implementiert den Metadatenzugriff auf localStorage unter dem absichtlich beibehaltenen Schlüssel `officeflow.demo.v1`. Das darin gespeicherte Schema hat jetzt **Version 3**. Über `configureDataProvider()` lässt sich vor der Initialisierung ein anderer Anbieter einsetzen. Geschäftsregeln liegen unabhängig von der Darstellung in `domain/`. Hintergrunddateien werden separat über `data/assets.ts` verwaltet.
+`WorkspaceDataProvider` definiert `load`, `save` und `reset`. `DemoDataProvider` implementiert den Metadatenzugriff auf localStorage unter dem absichtlich beibehaltenen Schlüssel `officeflow.demo.v1`; Hintergrunddateien liegen in IndexedDB. `MicrosoftGraphDataProvider` lädt dagegen ausschließlich echte SharePoint-Daten und kennzeichnet sich als schreibgeschützt. Der Store blockiert damit alle lokalen Schreibtransaktionen im Microsoft-Modus.
 
-`MicrosoftGraphGateway` beschreibt den Entwurf für einen späteren Adapter: Räume, Mitarbeiter, Buchungen, Stornierung und Grundrissänderungen; ETags sind für konkurrierende Änderungen vorgesehen. Der Store serialisiert lokale Änderungen und zeigt sie erst nach erfolgreichem Speichern als erfolgreich an. Speicherausfälle werden gemeldet; beschädigte Daten werden nicht still überschrieben.
+`MicrosoftAuth` kapselt MSAL Browser. MSAL führt den Authorization Code Flow mit PKCE aus, verwaltet Token in `sessionStorage` und versucht vor jeder Graph-Anfrage eine stille Aktualisierung. Interaktionserfordernisse und abgelaufene Sitzungen werden ausdrücklich gemeldet. `GraphClient` setzt Bearer-Token ausschließlich im HTTP-Header, liest `@odata.nextLink` vollständig und behandelt Netzwerkfehler, Berechtigungen, fehlende Ressourcen sowie Throttling mit begrenzten Wiederholungen.
 
-**Eine Graph-/SharePoint-Integration ist nicht implementiert.** Vor einer produktiven Anbindung fehlen insbesondere Microsoft-Entra-Anmeldung mit PKCE, Berechtigungs- und Rollenkonzept, SharePoint-Datenmodell sowie eine atomare, anbieterübergreifende Konfliktprüfung. Ein reiner Austausch des Demo-Speichers reicht für einen sicheren Mehrbenutzerbetrieb nicht aus. Näheres in [Entwicklungsstand](docs/ENTWICKLUNGSSTAND.md).
+Produktive Schreibzugriffe bleiben bewusst deaktiviert. Eine clientseitige Verfügbarkeitsprüfung ist keine atomare Konfliktkontrolle. Die Zielarchitektur für Buchung, Stornierung, Identität, ETags, Änderungsprotokoll und Zeitzonen ist im [Integrationsleitfaden](docs/MICROSOFT-365-INTEGRATION.md) dokumentiert.
 
 ## Speicherung und Grenzen
 
@@ -159,17 +182,17 @@ Technik: React 19, TypeScript, Vite, Tailwind CSS 4, shadcn/ui-Muster und Radix 
 - Demo-Daten sind pro Browser und Origin gespeichert. Ein Neuladen erhält Buchungen und Grundrissänderungen. Der Hell-/Dunkelmodus wird separat gespeichert.
 - Zwei Repository-Demos auf derselben GitHub-Pages-Origin würden dieselben Speicherschlüssel teilen. Für mehrere Installationen sowohl localStorage-Schlüssel als auch IndexedDB-Namen pro Projekt abwandeln. Für das bestehende Repository bleibt der Namensraum aus Kompatibilitätsgründen erhalten.
 - Keine geräteübergreifende oder tabübergreifende Synchronisierung. Parallele Browser-Tabs können den lokalen Stand überschreiben. Die lokale Konfliktprüfung gilt für die aktive App-Instanz.
-- Keine Authentifizierung, echte Administratorrechte oder Zugriffskontrolle: Alle Besucher dürfen in ihrem eigenen Demo-Browser bearbeiten.
+- Der Demo-Modus besitzt keine Authentifizierung oder echten Administratorrollen: Alle Besucher dürfen ausschließlich ihre eigenen lokalen Browserdaten bearbeiten. Im Microsoft-Modus erzwingt Entra ID die Identität und Graph die Tenant-Berechtigungen; ein Frontend-Schalter vergibt keine Rolle.
 - Keine wiederkehrenden oder mehrtägigen Buchungen. Zeitfenster liegen zwischen 07:00 und 22:00 Uhr eines Tages.
 - Wände, Öffnungen, Zonen, Einrichtung und Ressourcen sind editierbare Vektoren. Keine automatische Erkennung aus Bilddateien und keine bauliche oder Fluchtwegprüfung. Kollisionen verwenden geometrische Rechtecke. Das WC-Symbol stellt keine Zertifizierung der Barrierefreiheit dar. Maße werden erst nach manueller Kalibrierung als Meter angezeigt.
-- Der JSON-Export enthält Buchungen und Plan-Metadaten, **keine Hintergrunddateien**. Ein vollständiger Datei-/Datenexport mit Wiederimport ist noch nicht enthalten. Originaldateien zusätzlich aufbewahren.
+- Der Sicherungsexport enthält Schema-Version, Buchungen, Plan-Metadaten, Originaldateien und gerenderte Hintergründe. SHA-256-Prüfsummen und Schema-Prüfung laufen vollständig vor der Vorschau. Erst eine Bestätigung ersetzt den Bestand; bei einem Schreibfehler wird der vorherige Daten- und Dateistand wiederhergestellt.
 - Browserdaten können durch Löschen der Websitedaten, privaten Modus oder Speicherbereinigung des Browsers verloren gehen. Die App meldet Speicherfehler; sie ersetzt kein zentrales Backup.
 
 ## Prüfstand
 
 Die Referenzbilder unter `tests/visual/` werden mit festem Datum und lokal gebündelter Schrift geprüft. Nach einer beabsichtigten UI-Änderung `npm run test:visual -- --update-snapshots` ausführen, die Bilder prüfen und gemeinsam mit dem Code einchecken. Datums-/Zeitfelder sind im Bildvergleich maskiert; deren Funktion wird separat getestet. Screenshots aller Hauptansichten finden sich unter `docs/screenshots/`. Eigene Vektorsymbole benötigen keine Fremdassets; die Lizenz der mitgelieferten Inter-Schrift liegt in `public/licenses/Inter-OFL.txt`.
 
-Version 0.3 enthält **48 fachliche Tests** und **33 Playwright-Browserprüfungen**, einschließlich aller bisherigen Abläufe, Datei- und PDF-Import, Migration, IndexedDB, Architekturwerkzeuge, Gruppen, Ebenen, Undo/Redo, Skalierung, Buchungen auf eigenen Plänen, zeitgenauer Verfügbarkeit und drei automatischer Bildvergleiche. Geprüfte Breiten: 390, 768, 1024 und 1440 Pixel.
+Version 0.5 enthält **62 fachliche Tests** und **37 Playwright-Browserprüfungen**, einschließlich aller bisherigen Abläufe sowie Showcase-Kopie und -Buchung, Konfiguration, Graph-Paginierung, Throttling, Berechtigungs- und Netzwerkfehler, stabile SharePoint-Zuordnung, getrennte Places-/Exchange-Quellen und vollständige Sicherungen. Die Graph-Tests verwenden Mocks und benötigen keinen Tenant. Geprüfte Breiten: 390, 768, 1024, 1440 und 1920 Pixel.
 
 `verify:production` liefert ausschließlich den echten Build unter einem Repository-Unterpfad aus und prüft direkte Navigation, Neuladen, PDF-Worker, lokale PDF-Ressourcen, Seite 2 einer PDF, Bildimport, Buchung auf eigenem Plan und Persistenz. Dabei werden die dokumentierten Bildschirmfotos erzeugt.
 

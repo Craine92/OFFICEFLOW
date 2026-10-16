@@ -70,6 +70,7 @@ export function FloorPlan({
   collisionIds = [],
   designer,
   thumbnail = false,
+  highlightIds,
 }: {
   room: OfficeRoom;
   bookings: Booking[];
@@ -86,6 +87,7 @@ export function FloorPlan({
   collisionIds?: string[];
   designer?: DesignerInteraction;
   thumbnail?: boolean;
+  highlightIds?: ReadonlySet<string>;
 }) {
   const holder = useRef<HTMLDivElement>(null),
     stage = useRef<Konva.Stage>(null),
@@ -95,6 +97,7 @@ export function FloorPlan({
     [view, setView] = useState({ zoom: 1, x: 0, y: 0 }),
     [expanded, setExpanded] = useState(false),
     [space, setSpace] = useState(false),
+    [hoveredId, setHoveredId] = useState<string>(),
     [pointer, setPointer] = useState<Point>(),
     [marquee, setMarquee] = useState<{ start: Point; end: Point }>();
   const background = usePlanImage(room.background?.assetId),
@@ -516,7 +519,24 @@ export function FloorPlan({
                 return (
                   <Group
                     key={o.id}
-                    opacity={filter !== 'all' && status !== filter ? 0.25 : 1}
+                    opacity={
+                      (filter !== 'all' && status !== filter) ||
+                      (highlightIds && highlightIds.size > 0 && !highlightIds.has(o.id))
+                        ? 0.18
+                        : 1
+                    }
+                    onMouseEnter={() => {
+                      if (!interactive) {
+                        setHoveredId(o.id);
+                        const container = stage.current?.container();
+                        if (container) container.style.cursor = 'pointer';
+                      }
+                    }}
+                    onMouseLeave={() => {
+                      setHoveredId(undefined);
+                      const container = stage.current?.container();
+                      if (container) container.style.cursor = pan ? 'grab' : 'default';
+                    }}
                     onClick={(e) => {
                       if (!interactive) {
                         e.cancelBubble = true;
@@ -530,6 +550,23 @@ export function FloorPlan({
                       }
                     }}
                   >
+                    {(hoveredId === o.id || selectedId === o.id) && !thumbnail && (
+                      <Rect
+                        listening={false}
+                        x={o.x}
+                        y={o.y}
+                        width={o.width + 16}
+                        height={o.height + 16}
+                        rotation={o.rotation}
+                        offsetX={(o.width + 16) / 2}
+                        offsetY={(o.height + 16) / 2}
+                        cornerRadius={10}
+                        stroke="#178284"
+                        strokeWidth={2 / scale}
+                        dash={hoveredId === o.id && selectedId !== o.id ? [5 / scale, 4 / scale] : undefined}
+                        fill="#1782840d"
+                      />
+                    )}
                     {item(o.id, <Furniture object={o} status={status} />)}
                   </Group>
                 );

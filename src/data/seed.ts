@@ -1,6 +1,7 @@
 import type { OfficeData } from '../domain/types';
 import { today } from '../domain/booking';
 import { presentationRooms } from './presentationRooms';
+import { showcaseFloors } from './showcaseFloors';
 const people = [
   ['Anna Weber', 'Produkt & Design', '#c5d7ca'],
   ['Max Hoffmann', 'Entwicklung', '#cbd3e6'],
@@ -26,8 +27,11 @@ const people = [
   ['Tom Albrecht', 'Produkt & Design', '#d4c8df'],
 ];
 export function createSeed(): OfficeData {
-  const rooms = presentationRooms();
-  const [open, single, hybrid] = rooms;
+  const [open, single, hybrid] = presentationRooms();
+  const showcase = structuredClone(showcaseFloors()[0].room);
+  showcase.id = 'demo-showcase-hq';
+  showcase.name = 'Nordlicht HQ · Showcase';
+  const rooms = [open, single, hybrid, showcase];
   const employees = people.map(([name, department, color], i) => ({
     id: `e${i + 1}`,
     name,

@@ -12,10 +12,10 @@ const input = (): BookingInput => ({
   end: '11:00',
 });
 describe('Buchungsregeln', () => {
-  it('erstellt 42 Arbeitsplätze und zwei buchbare Meetingräume', () => {
+  it('erstellt 106 Arbeitsplätze und fünf buchbare Meetingräume', () => {
     const objects = createSeed().rooms.flatMap((r) => r.objects);
-    expect(objects.filter((o) => o.kind === 'desk')).toHaveLength(42);
-    expect(objects.filter((o) => o.kind === 'meeting')).toHaveLength(2);
+    expect(objects.filter((o) => o.kind === 'desk')).toHaveLength(106);
+    expect(objects.filter((o) => o.kind === 'meeting')).toHaveLength(5);
   });
   it('akzeptiert einen freien Arbeitsplatz', () => expect(validateBooking(createSeed(), input())).toBeNull());
   it('verhindert Überschneidungen eines Arbeitsplatzes', () =>

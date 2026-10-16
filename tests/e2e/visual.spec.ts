@@ -3,6 +3,8 @@ for (const [route, name] of [
   ['/', 'dashboard'],
   ['/#/raumplanung', 'raumplanung'],
   ['/#/editor', 'editor'],
+  ['/#/showcase', 'showcase'],
+  ['/#/praesentation', 'praesentation'],
 ] as const)
   test(`Visuelle Referenz ${name}`, async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 1000 });

@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from 'react';
-import { HashRouter, NavLink, Route, Routes, useLocation, Link } from 'react-router-dom';
+import { lazy, Suspense, useCallback, useEffect, useState } from 'react';
+import { HashRouter, NavLink, Route, Routes, useLocation, useNavigate, Link } from 'react-router-dom';
 import {
   ArrowRight,
   Bell,
@@ -23,6 +23,8 @@ import {
   MapPin,
   Command,
   RotateCcw,
+  LockKeyhole,
+  Sparkles,
 } from 'lucide-react';
 import { WorkspaceView } from './components/WorkspaceView';
 import { BookingDialog, type BookingTarget } from './components/BookingDialog';
@@ -30,17 +32,29 @@ import { Button } from './components/ui/button';
 import { Dialog } from './components/ui/dialog';
 import { BookingsPage } from './pages/BookingsPage';
 import { EmployeesPage } from './pages/EmployeesPage';
-import { EditorPage } from './pages/EditorPage';
-import { SettingsPage } from './pages/SettingsPage';
 import { useOfficeStore } from './store/useOfficeStore';
 import { formatDate, today } from './domain/booking';
 import { TimeWindowPicker } from './components/TimeWindowPicker';
 import { Dashboard } from './components/Dashboard';
-import { PresentationPage } from './pages/PresentationPage';
+import { useMicrosoftIntegration } from './integrations/microsoft/store';
+
+const EditorPage = lazy(() =>
+  import('./pages/EditorPage').then((module) => ({ default: module.EditorPage })),
+);
+const SettingsPage = lazy(() =>
+  import('./pages/SettingsPage').then((module) => ({ default: module.SettingsPage })),
+);
+const PresentationPage = lazy(() =>
+  import('./pages/PresentationPage').then((module) => ({ default: module.PresentationPage })),
+);
+const ShowcasePage = lazy(() =>
+  import('./pages/ShowcasePage').then((module) => ({ default: module.ShowcasePage })),
+);
 
 const navigation = [
   { path: '/', label: 'Übersicht', Icon: LayoutDashboard },
   { path: '/raumplanung', label: 'Raumplanung', Icon: Layers3 },
+  { path: '/showcase', label: 'Showcase-Galerie', Icon: Sparkles },
   { path: '/buchungen', label: 'Buchungen', Icon: CalendarCheck2 },
   { path: '/mitarbeiter', label: 'Mitarbeiter', Icon: Users },
 ];
@@ -53,15 +67,32 @@ const pageTitles: Record<string, [string, string]> = {
   '/buchungen': ['Platz für einen guten Tag.', 'Alle Reservierungen, Zeiten und Anwesenheiten an einem Ort.'],
   '/mitarbeiter': ['Menschen machen den Unterschied.', 'Finden Sie Ihr Team und sehen Sie, wer vor Ort ist.'],
   '/editor': ['Gestalten Sie Ihre Arbeitswelt.', 'Ein Grundriss, der zu Ihrem Team passt.'],
+  '/showcase': [
+    'Arbeitswelten mit Charakter.',
+    'Drei detailreiche Etagen für Präsentation, Inspiration und Ihre eigene Demo.',
+  ],
   '/einstellungen': [
-    'Alles gut eingerichtet.',
-    'Demo-Daten, lokale Speicherung und zukünftige Integrationen.',
+    'Alles gut verbunden.',
+    'Lokale Sicherungen und Microsoft-365-Integrationen zentral verwalten.',
   ],
 };
 
+function initials(name?: string) {
+  if (!name) return 'MS';
+  return name
+    .split(/\s+/)
+    .map((part) => part[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase();
+}
+
 function Shell() {
-  const { data, error, initialize, date, setDate, roomId, reset } = useOfficeStore();
+  const { data, error, initialize, date, setDate, roomId, setRoom, reset } = useOfficeStore();
+  const integration = useMicrosoftIntegration();
+  const microsoftMode = integration.mode === 'microsoft-graph';
   const location = useLocation();
+  const navigate = useNavigate();
   const [target, setTarget] = useState<BookingTarget | null>(null);
   const [toast, setToast] = useState('');
   const [sidebar, setSidebar] = useState(false);
@@ -113,6 +144,10 @@ function Shell() {
   ];
   const room = data?.rooms.find((r) => r.id === roomId) ?? data?.rooms[0];
   const newBooking = () => {
+    if (microsoftMode) {
+      notify('Buchungen sind im Microsoft-365-Modus bis zur zentralen Konfliktprüfung schreibgeschützt.');
+      return;
+    }
     const object = room?.objects.find((o) => o.kind === 'desk');
     if (room) setTarget({ roomId: room.id, objectId: object?.id ?? '' });
   };
@@ -150,11 +185,32 @@ function Shell() {
         <div className="workspace-switch">
           <span className="workspace-logo">N</span>
           <span>
-            <strong>Nordlicht Studio</strong>
-            <small>Ihr gemeinsamer Arbeitsort</small>
+            <strong>
+              {microsoftMode ? integration.report?.siteName || 'Microsoft 365' : 'Nordlicht Studio'}
+            </strong>
+            <small>{microsoftMode ? 'Verbundene Organisation' : 'Ihr gemeinsamer Arbeitsort'}</small>
           </span>
-          <span className="demo-small">DEMO</span>
+          <span className="demo-small">{microsoftMode ? 'M365' : 'DEMO'}</span>
         </div>
+        {data && (
+          <label className="sidebar-floor-switch">
+            <span>AKTIVE ETAGE</span>
+            <select
+              aria-label="Etage schnell wechseln"
+              value={room?.id ?? ''}
+              onChange={(event) => {
+                setRoom(event.target.value);
+                navigate('/raumplanung');
+              }}
+            >
+              {data.rooms.map((entry) => (
+                <option key={entry.id} value={entry.id}>
+                  {entry.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
         <span className="nav-caption">ARBEITSWELT</span>
         <nav aria-label="Hauptnavigation">
           {navigation.map(({ path, label, Icon }) => (
@@ -210,10 +266,14 @@ function Shell() {
             <ArrowRight size={14} />
           </button>
           <div className="sidebar-profile">
-            <span className="profile-avatar">AW</span>
+            <span className="profile-avatar">
+              {microsoftMode ? initials(integration.account?.name) : 'AW'}
+            </span>
             <div>
-              <strong>Anna Weber</strong>
-              <span>Demo-Administratorin</span>
+              <strong>
+                {microsoftMode ? integration.account?.name || 'Microsoft-Benutzer' : 'Anna Weber'}
+              </strong>
+              <span>{microsoftMode ? integration.account?.username : 'Demo-Administratorin'}</span>
             </div>
             <span className="profile-status" title="Lokales Demo-Profil" />
           </div>
@@ -245,9 +305,9 @@ function Shell() {
             </span>
           </div>
           <div className="topbar-actions">
-            <span className="demo-badge">
+            <span className={`demo-badge ${microsoftMode ? 'microsoft-mode-badge' : ''}`}>
               <i />
-              Demo-Modus
+              {microsoftMode ? 'Microsoft 365 · Nur Lesen' : 'Demo-Modus'}
             </span>
             <span className="topbar-divider" />
             <Button
@@ -266,8 +326,11 @@ function Shell() {
             >
               <Bell size={18} />
             </Button>
-            <span className="topbar-avatar" title="Anna Weber · Demo-Profil">
-              AW
+            <span
+              className="topbar-avatar"
+              title={microsoftMode ? integration.account?.username : 'Anna Weber · Demo-Profil'}
+            >
+              {microsoftMode ? initials(integration.account?.name) : 'AW'}
             </span>
           </div>
         </header>
@@ -281,17 +344,30 @@ function Shell() {
               <h1>{title}</h1>
               <p>{subtitle}</p>
             </div>
-            <Button onClick={newBooking} disabled={!data}>
-              <Plus size={17} />
-              Neue Buchung
-            </Button>
+            {location.pathname === '/showcase' ? (
+              <Button asChild>
+                <Link to="/raumplanung">
+                  <Layers3 size={17} />
+                  Eigene Planung
+                </Link>
+              </Button>
+            ) : !['/einstellungen', '/editor', '/praesentation'].includes(location.pathname) ? (
+              <Button
+                onClick={newBooking}
+                disabled={!data || microsoftMode}
+                title={microsoftMode ? 'Im lesenden Microsoft-Modus noch nicht freigegeben' : undefined}
+              >
+                <Plus size={17} />
+                Neue Buchung
+              </Button>
+            ) : null}
           </div>
           <div className="context-row">
             <span className="location-label">
               <MapPin size={15} />
               <strong>Berlin Mitte</strong>
               <span className="context-separator" />
-              Nordlicht Studio
+              {microsoftMode ? integration.report?.siteName || 'Microsoft 365' : 'Nordlicht Studio'}
               <ChevronDown size={12} />
             </span>
             <div className="date-controls">
@@ -324,6 +400,16 @@ function Shell() {
             </div>
           </div>
           {data && ['/', '/raumplanung'].includes(location.pathname) && <TimeWindowPicker />}
+          {microsoftMode && (
+            <div className="readonly-banner" role="status">
+              <LockKeyhole size={16} />
+              <span>
+                <strong>Microsoft-365-Modus · Nur Lesen.</strong> Angezeigt werden ausschließlich verbundene
+                Unternehmensdaten. Schreiben, Buchen und Stornieren werden erst nach einer serverseitigen
+                Konflikt- und Berechtigungsprüfung freigegeben.
+              </span>
+            </div>
+          )}
           {error ? (
             <section className="panel load-error">
               <h2>Ihre Demo konnte nicht geladen werden.</h2>
@@ -345,36 +431,67 @@ function Shell() {
           ) : !data ? (
             <div className="loading-state">Ihre Arbeitswelt wird vorbereitet …</div>
           ) : (
-            <Routes>
-              <Route path="/" element={<Dashboard onBook={setTarget} notify={notify} />} />
-              <Route
-                path="/praesentation"
-                element={<PresentationPage onBook={setTarget} />}
-              />
-              <Route
-                path="/raumplanung"
-                element={<WorkspaceView onBook={setTarget} />}
-              />
-              <Route path="/buchungen" element={<BookingsPage notify={notify} />} />
-              <Route path="/mitarbeiter" element={<EmployeesPage />} />
-              <Route path="/editor" element={<EditorPage notify={notify} onDirty={onDirty} />} />
-              <Route path="/einstellungen" element={<SettingsPage notify={notify} />} />
-              <Route
-                path="*"
-                element={
-                  <div className="panel empty-state">
-                    <Layers3 size={32} />
-                    <p>Diese Adresse gehört zu keinem Bürobereich.</p>
-                    <Button asChild>
-                      <Link to="/">
-                        Zur Übersicht
-                        <ArrowRight size={15} />
-                      </Link>
-                    </Button>
-                  </div>
-                }
-              />
-            </Routes>
+            <Suspense fallback={<div className="loading-state">Ihre Arbeitswelt wird vorbereitet …</div>}>
+              <Routes>
+                <Route
+                  path="/"
+                  element={
+                    <Dashboard
+                      onBook={
+                        microsoftMode
+                          ? () => notify('Im Microsoft-365-Modus sind Buchungen noch nicht freigegeben.')
+                          : setTarget
+                      }
+                      notify={notify}
+                    />
+                  }
+                />
+                <Route
+                  path="/praesentation"
+                  element={
+                    <PresentationPage
+                      onBook={
+                        microsoftMode
+                          ? () => notify('Im Microsoft-365-Modus sind Buchungen noch nicht freigegeben.')
+                          : setTarget
+                      }
+                    />
+                  }
+                />
+                <Route
+                  path="/raumplanung"
+                  element={
+                    <WorkspaceView
+                      onBook={
+                        microsoftMode
+                          ? () => notify('Im Microsoft-365-Modus sind Buchungen noch nicht freigegeben.')
+                          : setTarget
+                      }
+                    />
+                  }
+                />
+                <Route path="/buchungen" element={<BookingsPage notify={notify} />} />
+                <Route path="/mitarbeiter" element={<EmployeesPage />} />
+                <Route path="/showcase" element={<ShowcasePage notify={notify} />} />
+                <Route path="/editor" element={<EditorPage notify={notify} onDirty={onDirty} />} />
+                <Route path="/einstellungen" element={<SettingsPage notify={notify} />} />
+                <Route
+                  path="*"
+                  element={
+                    <div className="panel empty-state">
+                      <Layers3 size={32} />
+                      <p>Diese Adresse gehört zu keinem Bürobereich.</p>
+                      <Button asChild>
+                        <Link to="/">
+                          Zur Übersicht
+                          <ArrowRight size={15} />
+                        </Link>
+                      </Button>
+                    </div>
+                  }
+                />
+              </Routes>
+            </Suspense>
           )}
           <footer className="page-footer">
             <span>
@@ -382,7 +499,8 @@ function Shell() {
               OFFICEFLOW<span className="footer-divider">/</span>Mehr Raum. Mehr Möglichkeiten.
             </span>
             <span>
-              Demo-Version 0.3<span className="footer-divider">·</span>Daten bleiben in Ihrem Browser
+              Version 0.5<span className="footer-divider">·</span>
+              {microsoftMode ? 'Microsoft Graph · Nur Lesen' : 'Daten bleiben in Ihrem Browser'}
             </span>
           </footer>
         </main>

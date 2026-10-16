@@ -74,6 +74,13 @@ try {
   await page.getByRole('button', { name: 'Dunkelmodus aktivieren' }).click();
   await page.screenshot({ path: 'docs/screenshots/dunkelmodus.png', fullPage: true, animations: 'disabled' });
   await page.getByRole('button', { name: 'Hellmodus aktivieren' }).click();
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+  await page.screenshot({
+    path: 'docs/screenshots/desktop-1920.png',
+    fullPage: true,
+    animations: 'disabled',
+  });
   await page.setViewportSize({ width: 768, height: 1024 });
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
   await page.screenshot({ path: 'docs/screenshots/tablet.png', fullPage: true, animations: 'disabled' });
@@ -145,6 +152,7 @@ try {
     ['#/mitarbeiter', 'mitarbeiter'],
     ['#/einstellungen', 'einstellungen'],
     ['#/editor', 'raumeditor'],
+    ['#/showcase', 'showcase'],
     ['#/praesentation', 'praesentation'],
   ]) {
     await page.goto(url + route);

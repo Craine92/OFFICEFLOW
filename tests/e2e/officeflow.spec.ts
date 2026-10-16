@@ -88,7 +88,7 @@ test('Meetingraum konfigurieren, buchen und Demo vollständig zurücksetzen', as
     saved.rooms
       .flatMap((r: { objects: unknown[] }) => r.objects)
       .filter((o: { kind: string }) => o.kind === 'meeting'),
-  ).toHaveLength(2);
+  ).toHaveLength(5);
 });
 
 test('Arbeitsplatz im Canvas auswählen, verschieben und persistent speichern', async ({ page }) => {
@@ -115,18 +115,56 @@ test('Arbeitsplatz im Canvas auswählen, verschieben und persistent speichern', 
   await expect(page.getByLabel('Position X', { exact: true })).toHaveValue(movedX);
 });
 
-test('Klick auf einen Arbeitsplatz öffnet seinen Buchungsdialog', async ({ page }) => {
+test('Klick auf einen Arbeitsplatz zeigt erst Details und öffnet dann den Buchungsdialog', async ({
+  page,
+}) => {
   await page.goto('/#/raumplanung');
   await page.getByRole('button', { name: 'Einzelbüro' }).click();
   const canvas = page.locator('canvas');
   await expect(canvas).toBeVisible();
   await canvas.scrollIntoViewIfNeeded();
   await clickPlan(page, 805, 550);
+  await expect(page.locator('.resource-detail-card').getByText('EB-06', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Zeitraum prüfen und buchen' }).click();
   await expect(page.getByRole('dialog')).toBeVisible();
   await expect(page.getByLabel('Arbeitsplatz / Raum', { exact: true })).toHaveValue('EB-6');
 });
 
+test('Showcase-Plan wird isoliert kopiert und ist anschließend buchbar', async ({ page }) => {
+  await page.goto('/#/showcase');
+  await expect(
+    page.getByRole('heading', { name: 'Arbeitswelten, die Eindruck hinterlassen.' }),
+  ).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByRole('article')).toHaveCount(3);
+  await page.getByRole('button', { name: 'Nordlicht Headquarters ansehen' }).click();
+  await expect(page.locator('.showcase-viewer')).toContainText('Nordlicht Headquarters');
+  await page.getByRole('button', { name: 'Als eigene Kopie übernehmen' }).click();
+  await expect(page).toHaveURL(/#\/raumplanung$/);
+  await expect(page.getByRole('button', { name: /Nordlicht Headquarters · Eigene Kopie/ })).toBeVisible();
+  await page.getByRole('button', { name: 'Neue Buchung' }).click();
+  await page.getByLabel('Mitarbeiter', { exact: true }).selectOption('e22');
+  await page.getByRole('button', { name: 'Verbindlich buchen' }).click();
+  await expect(page.getByRole('status')).toContainText('erfolgreich gebucht');
+  const result = await page.evaluate(() => {
+    const data = JSON.parse(localStorage.getItem('officeflow.demo.v1')!);
+    const copy = data.rooms.find((room: { name: string }) => room.name.endsWith('Eigene Kopie'));
+    return {
+      roomCount: data.rooms.length,
+      copyId: copy.id,
+      hasBooking: data.bookings.some((booking: { roomId: string }) => booking.roomId === copy.id),
+      sourceStillPresent: data.rooms.some((room: { id: string }) => room.id === 'demo-showcase-hq'),
+    };
+  });
+  expect(result).toEqual({
+    roomCount: 5,
+    copyId: expect.any(String),
+    hasBooking: true,
+    sourceStillPresent: true,
+  });
+});
+
 for (const viewport of [
+  { width: 1920, height: 1080 },
   { width: 1440, height: 1000 },
   { width: 1024, height: 900 },
   { width: 768, height: 1024 },
@@ -141,6 +179,8 @@ for (const viewport of [
     // Arial bildet auf Windows auch die breitere Linux-Ersatzschrift ab.
     if (viewport.width === 390)
       await page.addStyleTag({ content: ':root { font-family: Arial, sans-serif !important; }' });
+    if (viewport.width === 1920)
+      await page.screenshot({ path: 'test-results/officeflow-wide.png', fullPage: true });
     if (viewport.width === 1440)
       await page.screenshot({ path: 'test-results/officeflow-desktop.png', fullPage: true });
     if (viewport.width === 390)

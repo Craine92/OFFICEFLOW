@@ -229,9 +229,9 @@ describe('Auswahl, Ressourcen und Ebenen', () => {
     expect(isElementEditable(r, id)).toBe(false);
     expect(reorderElements(r, [id], true).objects.at(-1)!.id).toBe(id);
   });
-  it('liefert drei vollständige, konfliktfreie Präsentationspläne mit stabilen Buchungsreferenzen', () => {
+  it('liefert vier vollständige, konfliktfreie Präsentationspläne mit stabilen Buchungsreferenzen', () => {
     const data = createSeed();
-    expect(data.rooms.map((r) => r.objects.filter((o) => o.kind === 'desk').length)).toEqual([24, 6, 12]);
+    expect(data.rooms.map((r) => r.objects.filter((o) => o.kind === 'desk').length)).toEqual([24, 6, 12, 64]);
     expect(data.rooms[2].fixtures.map((o) => o.kind)).toContain('elevator');
     expect(data.rooms[2].fixtures.map((o) => o.kind)).toContain('stairs');
     for (const r of data.rooms) expect(validateRoom(r)).toBeNull();
