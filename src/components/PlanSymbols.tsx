@@ -1,5 +1,5 @@
 import { Group, Rect, Circle, Ellipse, Line, Text, Arc, Arrow } from 'react-konva';
-import type { FurnitureKind, FixtureKind, PlanObject, WorkspaceStatus } from '../domain/types';
+import type { FurnitureKind, FixtureKind, PlanObject } from '../domain/types';
 const ink = '#70818b',
   light = '#eef1f1',
   wood = '#ded5c3',
@@ -301,8 +301,7 @@ export function FixtureSymbol({ kind }: { kind: FixtureKind }) {
     </Group>
   );
 }
-export function ResourceSymbol({ object: o, status }: { object: PlanObject; status: WorkspaceStatus }) {
-  const statusColor = { available: '#328775', reserved: '#c29440', occupied: '#6f87aa' }[status];
+export function ResourceSymbol({ object: o }: { object: PlanObject }) {
   if (o.kind === 'meeting')
     return (
       <Group>
@@ -333,7 +332,6 @@ export function ResourceSymbol({ object: o, status }: { object: PlanObject; stat
         />
         <Rect x={-28} y={-72} width={56} height={5} fill="#566c76" />
         <Text text={o.name} x={-100} y={59} width={200} align="center" fill="#415d65" fontSize={12} />
-        <Circle x={89} y={-64} radius={5} fill={statusColor} />
       </Group>
     );
   return (
@@ -363,10 +361,8 @@ export function ResourceSymbol({ object: o, status }: { object: PlanObject; stat
       <Line points={[0, -11, 0, -6, -7, -6, 7, -6]} stroke={ink} strokeWidth={1.5} />
       <Rect x={-10} y={4} width={20} height={6} cornerRadius={1} fill="#c2cccd" />
       <Ellipse x={17} y={8} radiusX={3} radiusY={4} fill="#b3c0c1" />
-      <Rect x={-31} y={-18} width={4} height={13} fill={statusColor} cornerRadius={2} />
       <Group rotation={-o.rotation}>
         <Text text={o.name} x={-36} y={-4} width={72} fontSize={9} align="center" fill="#405760" />
-        <Circle x={29} y={-13} radius={3.5} fill={statusColor} />
       </Group>
     </Group>
   );

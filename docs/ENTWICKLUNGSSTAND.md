@@ -1,6 +1,12 @@
-# Entwicklungsstand – OFFICEFLOW 0.5
+# Entwicklungsstand – OFFICEFLOW 0.5.1
 
 Stand: 16. Oktober 2026. Öffentliche, vollständig statische Demo: [OFFICEFLOW](https://craine92.github.io/OFFICEFLOW/). Quellcode: [Craine92/OFFICEFLOW](https://github.com/Craine92/OFFICEFLOW).
+
+## Visuelle Arbeitsplatzampel in 0.5.1
+
+Die normale Raumplanung, das Dashboard und der Präsentationsmodus zeigen jeden buchbaren Arbeitsplatz und Meetingraum mit einer 18 Bildschirmpixel großen, zoomstabilen LED rechts oben. Grün (`#16A34A`) mit Häkchen steht für frei, Rot (`#DC2626`) mit Kreuz für reserviert oder belegt. Der fachliche Zustand `reserved` beziehungsweise `occupied` bleibt erhalten und wird im Auswahlbereich zusammen mit der genauen Buchungszeit angezeigt. Nur ein explizites `checkedIn` am heutigen Tag gilt als bestätigte Anwesenheit.
+
+Die Statusgruppe ist auf der Konva-Ebene vollständig `listening={false}` und gleicht die aktuelle Bühnen-Skalierung aus, ohne Möbelkoordinaten zu verändern. Eine parallele, visuell verborgene Ressourcenliste übermittelt Namen und genaue Status an assistive Technik und dient den Browserprüfungen. Editor und statische Showcase-Vorschauen blenden die Ampeln aus; eine übernommene Showcase-Kopie erhält sie erst als echter buchbarer Bürobereich.
 
 ## Premium Experience und Showcase in 0.5
 
@@ -42,8 +48,9 @@ Version 0.3 führt eigenständige Architektur-, Ausstattungs-, Zonen-, Annotatio
 | `domain/catalog.ts`                      | Vollständiger Objektkatalog und einzeln buchbare Arbeitsplatzgruppen                                              |
 | `domain/layout.ts`                       | Nummerierung, Planabmessungen, Hintergrundtransformationen und Speichervalidierung                                |
 | `components/PlanSymbols.tsx`             | Eigene detaillierte Vektorsymbole in Draufsicht                                                                   |
-| `components/Furniture.tsx`               | Neutrale Ressourcendarstellung mit kleinen Statusmarkierungen                                                     |
-| `components/FloorPlan.tsx`               | Dynamischer Konva-Plan, Kamera, Ebenen, Auswahlrahmen, Bearbeitungsgriffe und Wandendpunkte                       |
+| `components/Furniture.tsx`               | Neutrale Ressourcendarstellung ohne statusabhängige Geometrie                                                     |
+| `components/StatusLED.tsx`               | Zoomstabile, nicht interaktive Statusampel mit Kontrastring und Formsymbol                                        |
+| `components/FloorPlan.tsx`               | Dynamischer Konva-Plan, Kamera, Statusebene, Auswahlrahmen, Bearbeitungsgriffe und Wandendpunkte                  |
 | `components/editor/CatalogPanel.tsx`     | Katalogsuche, Kategorien und lokale Favoriten                                                                     |
 | `pages/EditorPage.tsx`                   | Werkzeugsteuerung, Eigenschaften, Ebenen, Speichern und Verwerfen                                                 |
 | `components/Dashboard.tsx`               | Berechnete Kennzahlen, echte Etagenminiaturen, Buchungen und Besprechungsraumauslastung                           |

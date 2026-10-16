@@ -499,7 +499,7 @@ function Shell() {
               OFFICEFLOW<span className="footer-divider">/</span>Mehr Raum. Mehr Möglichkeiten.
             </span>
             <span>
-              Version 0.5<span className="footer-divider">·</span>
+              Version 0.5.1<span className="footer-divider">·</span>
               {microsoftMode ? 'Microsoft Graph · Nur Lesen' : 'Daten bleiben in Ihrem Browser'}
             </span>
           </footer>

@@ -20,3 +20,19 @@ for (const [route, name] of [
       threshold: 0.25,
     });
   });
+
+test('Visuelle Referenz raumplanung im Dunkelmodus', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.clock.setFixedTime(new Date('2026-10-15T08:00:00Z'));
+  await page.goto('/#/raumplanung');
+  await page.getByRole('button', { name: 'Dunkelmodus aktivieren' }).click();
+  await page.locator('canvas').first().waitFor();
+  await page.evaluate(() => document.fonts.ready);
+  await expect(page).toHaveScreenshot('raumplanung-dunkel.png', {
+    fullPage: true,
+    animations: 'disabled',
+    mask: [page.locator('.date-controls'), page.locator('input[type="time"]')],
+    maxDiffPixelRatio: 0.02,
+    threshold: 0.25,
+  });
+});

@@ -14,10 +14,12 @@ import {
   Search,
   SlidersHorizontal,
   CheckCircle2,
+  Check,
+  X,
   Clock3,
 } from 'lucide-react';
 import { useOfficeStore } from '../store/useOfficeStore';
-import { statusFor, statusLabels } from '../domain/booking';
+import { statusFor, statusLabels, today } from '../domain/booking';
 import type { BookingTarget } from './BookingDialog';
 import type { WorkspaceStatus } from '../domain/types';
 import { FloorPlan } from './FloorPlan';
@@ -62,8 +64,16 @@ export function WorkspaceView({ onBook }: { onBook: (target: BookingTarget) => v
     ? statusFor(data.bookings, selectedObject.id, date, timeStart, timeEnd)
     : undefined;
   const selectedBookings = selectedObject
-    ? data.bookings.filter((booking) => booking.objectId === selectedObject.id && booking.date === date)
+    ? data.bookings
+        .filter((booking) => booking.objectId === selectedObject.id && booking.date === date)
+        .sort((a, b) => a.start.localeCompare(b.start))
     : [];
+  const selectedStatusDetail =
+    selectedStatus === 'occupied'
+      ? 'Belegt · Anwesenheit bestätigt'
+      : selectedStatus === 'reserved'
+        ? 'Reserviert · Im gewählten Zeitraum nicht verfügbar'
+        : 'Frei · Im gewählten Zeitraum verfügbar';
   return (
     <>
       <div className="workspace-grid workspace-grid-full">
@@ -150,18 +160,18 @@ export function WorkspaceView({ onBook }: { onBook: (target: BookingTarget) => v
             }}
           />
           <div className="plan-legend">
-            <div>
+            <div className="availability-legend" aria-label="Legende der Arbeitsplatzampel">
               <span>
-                <i className="mini-dot available" />
-                Verfügbar
+                <i className="status-led-swatch available" aria-hidden="true">
+                  <Check size={10} strokeWidth={3} />
+                </i>
+                Grün – Frei
               </span>
               <span>
-                <i className="mini-dot reserved" />
-                Reserviert
-              </span>
-              <span>
-                <i className="mini-dot occupied" />
-                Belegt
+                <i className="status-led-swatch unavailable" aria-hidden="true">
+                  <X size={10} strokeWidth={3} />
+                </i>
+                Rot – Reserviert oder belegt
               </span>
             </div>
             <span>
@@ -190,7 +200,7 @@ export function WorkspaceView({ onBook }: { onBook: (target: BookingTarget) => v
                     <strong>{selectedObject.name}</strong>
                     <span className={`resource-status ${selectedStatus}`}>
                       <i className={`mini-dot ${selectedStatus}`} />
-                      {selectedStatus ? statusLabels[selectedStatus] : ''}
+                      {selectedStatusDetail}
                     </span>
                   </div>
                 </div>
@@ -202,7 +212,14 @@ export function WorkspaceView({ onBook }: { onBook: (target: BookingTarget) => v
                   <span>
                     <Clock3 size={14} />
                     {selectedBookings.length
-                      ? selectedBookings.map((booking) => `${booking.start}–${booking.end}`).join(', ')
+                      ? selectedBookings
+                          .map(
+                            (booking) =>
+                              `${booking.start}–${booking.end} Uhr · ${
+                                booking.checkedIn && date === today() ? 'Anwesenheit bestätigt' : 'Reserviert'
+                              }`,
+                          )
+                          .join(', ')
                       : 'Heute noch keine Buchung'}
                   </span>
                 </div>
@@ -218,6 +235,9 @@ export function WorkspaceView({ onBook }: { onBook: (target: BookingTarget) => v
             <div className="desk-suggestions">
               {displayObjects.map((o) => (
                 <button key={o.id} className="desk-suggestion" onClick={() => setSelected(o.id)}>
+                  <span className="sr-only">
+                    Status: {statusLabels[statusFor(data.bookings, o.id, date, timeStart, timeEnd)]}
+                  </span>
                   <span className="desk-icon">
                     <Armchair size={20} />
                   </span>

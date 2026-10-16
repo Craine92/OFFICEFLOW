@@ -1,10 +1,12 @@
-# OFFICEFLOW 0.5
+# OFFICEFLOW 0.5.1
 
 **Ihr Büro. Besser organisiert.** Eine vollständig deutschsprachige Büro-, Arbeitsplatz- und Raumplanung mit lokaler Demo und optionaler, lesender Microsoft-365-/SharePoint-Anbindung.
 
 **[Öffentliche Demo](https://craine92.github.io/OFFICEFLOW/)** · [Raumeditor öffnen](https://craine92.github.io/OFFICEFLOW/#/editor)
 
 Neu in 0.5: eine visuell und inhaltlich neu strukturierte Premium-Oberfläche, sechs echte Dashboard-Kennzahlen, eine große interaktive Etagenansicht, Ressourcenrecherche vor der Buchung, ein dauerhaft sichtbarer Editor-Katalog, ein geführter Kurzeinstieg und eine eigenständige Showcase-Galerie mit drei detailreichen Büroetagen. Alle 0.4-Funktionen einschließlich der optionalen, lesenden Microsoft-365-Anbindung bleiben erhalten.
+
+Neu in 0.5.1: Jeder buchbare Arbeitsplatz und Meetingraum trägt im interaktiven Grundriss eine zoomstabile 18-Pixel-Statuslampe. Grün mit Häkchen bedeutet im gewählten Zeitraum frei; Rot mit Kreuz bedeutet reserviert oder durch bestätigte Anwesenheit belegt. Der Detailbereich hält Reservierung und Anwesenheit weiterhin fachlich auseinander. Editor und rein dekorative Showcase-Vorschauen zeigen bewusst keine Live-Ampeln.
 
 ![OFFICEFLOW Dashboard](docs/screenshots/desktop.png)
 
@@ -51,7 +53,7 @@ Die GitHub-Pages-Demo startet immer ohne Anmeldung im lokalen Demo-Modus. Erst e
 
 Das vollständige SharePoint-Schema, Feldzuordnungen, Fehlerverhalten und die Test-Tenant-Einrichtung stehen im [Microsoft-365-Administrationsleitfaden](docs/MICROSOFT-365-INTEGRATION.md). Ohne autorisierten Test-Tenant bestätigen die automatisierten Tests ausschließlich Adapterverhalten mit API-Mocks, keine erfolgreiche Live-Verbindung.
 
-Grün bedeutet im ausgewählten Zeitfenster verfügbar, Gelb reserviert und Blau durch bestätigte Anwesenheit belegt. Eine Buchung von 09:00 bis 13:00 blockiert den Platz **nicht** für 13:00 bis 18:00. Teilweise Überschneidungen zählen als gebucht; direkt angrenzende Termine sind erlaubt. Der Buchungsdialog übernimmt das gewählte Zeitfenster und zeigt Mitarbeiter und alle Buchungszeiten des Platzes am gewählten Tag. Anwesenheit wird für heutige Termine manuell bestätigt, ohne Live-Erkennung.
+Grün bedeutet im ausgewählten Zeitfenster frei. Rot bedeutet reserviert oder durch ausdrücklich bestätigte Anwesenheit belegt und damit **nicht verfügbar**; eine Reservierung allein wird niemals als Anwesenheit ausgegeben. Eine Buchung von 09:00 bis 13:00 blockiert den Platz **nicht** für 13:00 bis 18:00. Teilweise Überschneidungen zählen als gebucht; direkt angrenzende Termine sind erlaubt. Der Buchungsdialog übernimmt das gewählte Zeitfenster und zeigt Mitarbeiter und alle Buchungszeiten des Platzes am gewählten Tag. Anwesenheit wird für heutige Termine manuell bestätigt, ohne Live-Erkennung.
 
 Ein frischer Demo-Datenbestand enthält **106 Arbeitsplätze**, **5 Meetingräume**, **22 fiktive Mitarbeiter**, 5 Abteilungen und 19 initiale Buchungen. Die drei getrennten Showcase-Vorlagen umfassen zusätzlich **140 Arbeitsplätze** und 7 Meetingräume, zählen aber erst nach einer bewussten Kopie zum eigenen Datenbestand. Daten werden beim ersten Start für das aktuelle Datum in der Zeitzone **Europe/Berlin** erzeugt. Bereits gespeicherte Termine behalten ihr Datum; für einen neuen Demo-Tag die Datumsauswahl verwenden oder die Demo zurücksetzen.
 
@@ -192,7 +194,7 @@ Produktive Schreibzugriffe bleiben bewusst deaktiviert. Eine clientseitige Verf�
 
 Die Referenzbilder unter `tests/visual/` werden mit festem Datum und lokal gebündelter Schrift geprüft. Nach einer beabsichtigten UI-Änderung `npm run test:visual -- --update-snapshots` ausführen, die Bilder prüfen und gemeinsam mit dem Code einchecken. Datums-/Zeitfelder sind im Bildvergleich maskiert; deren Funktion wird separat getestet. Screenshots aller Hauptansichten finden sich unter `docs/screenshots/`. Eigene Vektorsymbole benötigen keine Fremdassets; die Lizenz der mitgelieferten Inter-Schrift liegt in `public/licenses/Inter-OFL.txt`.
 
-Version 0.5 enthält **62 fachliche Tests** und **37 Playwright-Browserprüfungen**, einschließlich aller bisherigen Abläufe sowie Showcase-Kopie und -Buchung, Konfiguration, Graph-Paginierung, Throttling, Berechtigungs- und Netzwerkfehler, stabile SharePoint-Zuordnung, getrennte Places-/Exchange-Quellen und vollständige Sicherungen. Die Graph-Tests verwenden Mocks und benötigen keinen Tenant. Geprüfte Breiten: 390, 768, 1024, 1440 und 1920 Pixel.
+Version 0.5.1 enthält **67 fachliche Tests** und **40 Playwright-Browserprüfungen**, einschließlich der zeitgenauen Arbeitsplatzampel, sofortiger Aktualisierung bei Buchung und Stornierung, Zoomstabilität, einer visuellen Dunkelmodus-Referenz sowie der bewussten Ausblendung in Editor und Showcase. Zusätzlich bleiben alle bisherigen Abläufe für Showcase-Kopie und -Buchung, Konfiguration, Graph-Paginierung, Throttling, Berechtigungs- und Netzwerkfehler, stabile SharePoint-Zuordnung, getrennte Places-/Exchange-Quellen und vollständige Sicherungen abgedeckt. Die Graph-Tests verwenden Mocks und benötigen keinen Tenant. Geprüfte Breiten: 390, 768, 1024, 1440 und 1920 Pixel.
 
 `verify:production` liefert ausschließlich den echten Build unter einem Repository-Unterpfad aus und prüft direkte Navigation, Neuladen, PDF-Worker, lokale PDF-Ressourcen, Seite 2 einer PDF, Bildimport, Buchung auf eigenem Plan und Persistenz. Dabei werden die dokumentierten Bildschirmfotos erzeugt.
 

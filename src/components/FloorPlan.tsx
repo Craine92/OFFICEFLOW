@@ -41,7 +41,9 @@ import {
 import { Button } from './ui/button';
 import { Furniture } from './Furniture';
 import { FurnitureSymbol, FixtureSymbol, symbolSize } from './PlanSymbols';
+import { StatusLED } from './StatusLED';
 import { usePlanImage } from '../hooks/usePlanImage';
+import { statusLedPosition, statusLedVisual } from '../domain/statusLed';
 
 export interface DesignerInteraction {
   selected: string[];
@@ -71,6 +73,7 @@ export function FloorPlan({
   designer,
   thumbnail = false,
   highlightIds,
+  showStatus,
 }: {
   room: OfficeRoom;
   bookings: Booking[];
@@ -88,6 +91,7 @@ export function FloorPlan({
   designer?: DesignerInteraction;
   thumbnail?: boolean;
   highlightIds?: ReadonlySet<string>;
+  showStatus?: boolean;
 }) {
   const holder = useRef<HTMLDivElement>(null),
     stage = useRef<Konva.Stage>(null),
@@ -149,6 +153,19 @@ export function FloorPlan({
   const fit = Math.min(size.width / room.width, size.height / room.height) * (thumbnail ? 0.94 : 0.92),
     scale = fit * view.zoom,
     base = { x: (size.width - room.width * scale) / 2, y: (size.height - room.height * scale) / 2 };
+  const resourceStatuses = new Map(
+      room.objects.map(
+        (object) => [object.id, statusFor(bookings, object.id, date, timeStart, timeEnd)] as const,
+      ),
+    ),
+    statusIndicatorsVisible = (showStatus ?? (!thumbnail && !editor)) && room.layers.resources.visible,
+    statusCounts = room.objects.reduce(
+      (counts, object) => {
+        counts[resourceStatuses.get(object.id)!] += 1;
+        return counts;
+      },
+      { available: 0, reserved: 0, occupied: 0 },
+    );
   const world = (): Point => {
     const p = stage.current?.getPointerPosition() ?? { x: 0, y: 0 };
     return { x: (p.x - base.x - view.x) / scale, y: (p.y - base.y - view.y) / scale };
@@ -233,6 +250,10 @@ export function FloorPlan({
       data-background-state={
         room.background ? (background.error ? 'error' : background.image ? 'ready' : 'loading') : 'none'
       }
+      data-status-led={statusIndicatorsVisible ? 'visible' : 'hidden'}
+      data-status-available={statusIndicatorsVisible ? statusCounts.available : undefined}
+      data-status-reserved={statusIndicatorsVisible ? statusCounts.reserved : undefined}
+      data-status-occupied={statusIndicatorsVisible ? statusCounts.occupied : undefined}
     >
       {!thumbnail && (
         <div className="plan-annotation">
@@ -261,7 +282,11 @@ export function FloorPlan({
       <div
         className="canvas-holder"
         ref={holder}
-        aria-label={`Interaktiver Grundriss ${room.name}`}
+        aria-label={
+          statusIndicatorsVisible
+            ? `Interaktiver Grundriss ${room.name}: ${statusCounts.available} frei, ${statusCounts.reserved} reserviert, ${statusCounts.occupied} belegt`
+            : `Interaktiver Grundriss ${room.name}`
+        }
         style={{
           cursor: thumbnail
             ? 'default'
@@ -515,7 +540,7 @@ export function FloorPlan({
             })}
             {room.layers.resources.visible &&
               room.objects.map((o) => {
-                const status = statusFor(bookings, o.id, date, timeStart, timeEnd);
+                const status = resourceStatuses.get(o.id)!;
                 return (
                   <Group
                     key={o.id}
@@ -567,10 +592,33 @@ export function FloorPlan({
                         fill="#1782840d"
                       />
                     )}
-                    {item(o.id, <Furniture object={o} status={status} />)}
+                    {item(o.id, <Furniture object={o} />)}
                   </Group>
                 );
               })}
+            {statusIndicatorsVisible && (
+              <Group name="resource-status-layer" listening={false}>
+                {room.objects.map((object) => {
+                  const status = resourceStatuses.get(object.id)!;
+                  const position = statusLedPosition(object, scale);
+                  const opacity =
+                    (filter !== 'all' && status !== filter) ||
+                    (highlightIds && highlightIds.size > 0 && !highlightIds.has(object.id))
+                      ? 0.18
+                      : 1;
+                  return (
+                    <StatusLED
+                      key={object.id}
+                      status={status}
+                      stageScale={scale}
+                      x={position.x}
+                      y={position.y}
+                      opacity={opacity}
+                    />
+                  );
+                })}
+              </Group>
+            )}
             {room.annotations.map((a) =>
               item(
                 a.id,
@@ -712,6 +760,24 @@ export function FloorPlan({
           </Layer>
         </Stage>
       </div>
+      {statusIndicatorsVisible && (
+        <ul className="sr-only" aria-label={`Ressourcenstatus ${room.name}`} aria-live="polite">
+          {room.objects.map((object) => {
+            const status = resourceStatuses.get(object.id)!;
+            const visual = statusLedVisual(status);
+            return (
+              <li
+                key={object.id}
+                data-resource-id={object.id}
+                data-resource-status={status}
+                data-led-color={visual.color}
+              >
+                {object.name}: {visual.label}
+              </li>
+            );
+          })}
+        </ul>
+      )}
       {!thumbnail && (
         <div className="plan-bottom">
           <span className="plan-hint">

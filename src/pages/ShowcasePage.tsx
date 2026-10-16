@@ -158,11 +158,12 @@ export function ShowcasePage({ notify }: { notify: (message: string) => void }) 
             date={date}
             timeStart={timeStart}
             timeEnd={timeEnd}
+            showStatus={false}
             onSelect={() => undefined}
           />
         </div>
         <div className="showcase-viewer-foot">
-          <span>Showcase-Pläne sind unveränderliche Vorlagen.</span>
+          <span>Showcase-Vorschau · keine Live-Belegungsstatus.</span>
           <span>
             Eine Kopie erhält vollständig neue IDs und berührt keine bestehenden Buchungen oder Dateien.
           </span>

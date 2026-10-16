@@ -373,7 +373,7 @@ test('Zeitfenster gibt einen vormittags belegten Platz am Nachmittag frei', asyn
   await page.getByRole('button', { name: 'Zeitraum prüfen und buchen' }).click();
   await expect(page.getByLabel('Von', { exact: true })).toHaveValue('13:00');
   await expect(page.getByLabel('Bis', { exact: true })).toHaveValue('14:00');
-  await expect(page.getByText(/09:00–13:00 Uhr/)).toBeVisible();
+  await expect(page.locator('.existing-bookings').getByText(/09:00–13:00 Uhr/)).toBeVisible();
 });
 
 for (const viewport of [

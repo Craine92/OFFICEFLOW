@@ -8,11 +8,17 @@ test.beforeEach(async ({ page }) => {
 test('Buchung, Konfliktprüfung, Neuladen und Stornierung', async ({ page }) => {
   await page.goto('/');
   await expect(page.getByRole('heading', { name: 'Gute Arbeit beginnt hier.' })).toBeVisible();
+  await page.getByRole('link', { name: 'Raumplanung', exact: true }).click();
+  const os24 = page.locator('[data-resource-id="OS-24"]');
+  await expect(os24).toHaveAttribute('data-resource-status', 'available');
+  await expect(os24).toHaveAttribute('data-led-color', '#16A34A');
   await page.getByRole('button', { name: 'Neue Buchung' }).click();
   await page.getByLabel('Arbeitsplatz / Raum', { exact: true }).selectOption('OS-24');
   await page.getByLabel('Mitarbeiter', { exact: true }).selectOption('e22');
   await page.getByRole('button', { name: 'Verbindlich buchen' }).click();
   await expect(page.getByRole('status')).toContainText('erfolgreich gebucht');
+  await expect(os24).toHaveAttribute('data-resource-status', 'reserved');
+  await expect(os24).toHaveAttribute('data-led-color', '#DC2626');
   await page.getByRole('button', { name: 'Neue Buchung' }).click();
   await page.getByLabel('Arbeitsplatz / Raum', { exact: true }).selectOption('OS-24');
   await page.getByLabel('Mitarbeiter', { exact: true }).selectOption('e21');
@@ -26,9 +32,70 @@ test('Buchung, Konfliktprüfung, Neuladen und Stornierung', async ({ page }) => 
   await page.getByRole('button', { name: 'Buchung von Tom Albrecht stornieren' }).click();
   await page.getByRole('button', { name: 'Buchung stornieren', exact: true }).click();
   await expect(page.getByText('Hier ist noch alles offen.')).toBeVisible();
+  await page.getByRole('link', { name: 'Raumplanung', exact: true }).click();
+  await expect(page.locator('[data-resource-id="OS-24"]')).toHaveAttribute(
+    'data-resource-status',
+    'available',
+  );
+  await page.getByRole('link', { name: 'Buchungen', exact: false }).first().click();
   await page.reload();
   await page.getByRole('textbox', { name: 'Buchungen suchen' }).fill('Tom Albrecht');
   await expect(page.getByText('Hier ist noch alles offen.')).toBeVisible();
+});
+
+test('Arbeitsplatzampel unterscheidet Frei, Reserviert und bestätigte Anwesenheit zeitgenau', async ({
+  page,
+}) => {
+  await page.goto('/#/raumplanung');
+  const floorplan = page.locator('.plan-panel .floorplan');
+  const status = (id: string) => floorplan.locator(`[data-resource-id="${id}"]`);
+
+  await expect(floorplan).toHaveAttribute('data-status-led', 'visible');
+  await expect(status('OS-24')).toHaveAttribute('data-resource-status', 'available');
+  await expect(status('OS-24')).toHaveAttribute('data-led-color', '#16A34A');
+  await expect(status('OS-12')).toHaveAttribute('data-resource-status', 'reserved');
+  await expect(status('OS-12')).toHaveAttribute('data-led-color', '#DC2626');
+  await expect(status('OS-1')).toHaveAttribute('data-resource-status', 'occupied');
+  await expect(status('OS-1')).toHaveAttribute('data-led-color', '#DC2626');
+
+  const occupied = await page.evaluate(() => {
+    const data = JSON.parse(localStorage.getItem('officeflow.demo.v1')!);
+    const object = data.rooms
+      .find((room: { id: string }) => room.id === 'open')
+      .objects.find((entry: { id: string }) => entry.id === 'OS-1');
+    return { x: object.x, y: object.y };
+  });
+  await clickPlan(page, occupied.x, occupied.y);
+  await expect(page.locator('.resource-detail-card')).toContainText('Belegt · Anwesenheit bestätigt');
+  await expect(page.locator('.resource-detail-card')).toContainText(
+    '09:00–13:00 Uhr · Anwesenheit bestätigt',
+  );
+
+  await page.getByLabel('Verfügbarkeit von').fill('13:00');
+  await page.getByLabel('Verfügbarkeit bis').fill('14:00');
+  await expect(status('OS-1')).toHaveAttribute('data-resource-status', 'available');
+  await expect(status('OS-12')).toHaveAttribute('data-resource-status', 'reserved');
+  await page.getByRole('button', { name: 'Vergrößern', exact: true }).click();
+  await expect(status('OS-12')).toHaveAttribute('data-resource-status', 'reserved');
+  await expect(page.getByText('Grün – Frei', { exact: true })).toBeVisible();
+  await expect(page.getByText('Rot – Reserviert oder belegt', { exact: true })).toBeVisible();
+});
+
+test('Ampeln bleiben in Showcase und Editor verborgen, im Präsentationsmodus aber aktiv', async ({
+  page,
+}) => {
+  await page.goto('/#/showcase');
+  await expect(page.locator('.showcase-page .floorplan')).toHaveCount(4);
+  for (const plan of await page.locator('.showcase-page .floorplan').all()) {
+    await expect(plan).toHaveAttribute('data-status-led', 'hidden');
+  }
+  await expect(page.locator('.showcase-viewer-foot')).toContainText('keine Live-Belegungsstatus');
+
+  await page.goto('/#/editor');
+  await expect(page.locator('.designer-canvas .floorplan')).toHaveAttribute('data-status-led', 'hidden');
+
+  await page.goto('/#/praesentation');
+  await expect(page.locator('.floorplan').first()).toHaveAttribute('data-status-led', 'visible');
 });
 
 test('Drei Grundrisse, Zoom und direkte Navigation', async ({ page }) => {
@@ -132,9 +199,9 @@ test('Klick auf einen Arbeitsplatz zeigt erst Details und öffnet dann den Buchu
 
 test('Showcase-Plan wird isoliert kopiert und ist anschließend buchbar', async ({ page }) => {
   await page.goto('/#/showcase');
-  await expect(
-    page.getByRole('heading', { name: 'Arbeitswelten, die Eindruck hinterlassen.' }),
-  ).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByRole('heading', { name: 'Arbeitswelten, die Eindruck hinterlassen.' })).toBeVisible({
+    timeout: 15_000,
+  });
   await expect(page.getByRole('article')).toHaveCount(3);
   await page.getByRole('button', { name: 'Nordlicht Headquarters ansehen' }).click();
   await expect(page.locator('.showcase-viewer')).toContainText('Nordlicht Headquarters');
